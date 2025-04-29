@@ -8,7 +8,6 @@ import { ThemeProvider } from "next-themes";
 import Link from "next/link";
 import "./globals.css";
 import { Header } from "@/components/header/header";
-import Footer from "@/components/footer/footer";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -25,7 +24,7 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
-export default function RootLayout({
+export default function PublicLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -64,7 +63,6 @@ export default function RootLayout({
               </footer> */}
             </div>
           </main>
-          <Footer />
         </ThemeProvider>
       </body>
     </html>
