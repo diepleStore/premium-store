@@ -63,7 +63,7 @@ const products = [
     imageAlt: 'Hand stitched, orange leather long wallet.',
   },
   {
-    id:8,
+    id: 8,
     name: 'Leather Long Wallet',
     color: 'Natural',
     price: '$75',
@@ -79,34 +79,34 @@ export default function TrendingProduct() {
     <div className="bg-white">
       <div className="mx-auto max-w-2xl py-8 sm:py-16 lg:max-w-7xl">
         <div className="md:flex md:items-center md:justify-between">
-          <h2 className="text-2xl font-bold tracking-tight text-gray-900">Sản phẩm bán chạy</h2>
-          <a href="#" className="hidden text-sm font-medium text-indigo-600 hover:text-indigo-500 md:block">
+          <h2 className="text-2xl font-bold tracking-tight text-gray-900 uppercase">Sản phẩm bán chạy</h2>
+          <a href="/products" className="hidden text-xl font-medium text-indigo-600 hover:text-indigo-500 md:block">
             Tất cả sản phẩm
             <span aria-hidden="true"> &rarr;</span>
           </a>
         </div>
 
-        <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 md:grid-cols-4 md:gap-y-0 lg:gap-x-8">
+        <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 md:grid-cols-4 md:gap-y-10 lg:gap-x-8">
           {products.map((product) => (
             <div key={product.id} className="group relative">
               <div className="h-56 w-full overflow-hidden rounded-md bg-gray-200 group-hover:opacity-75 lg:h-72 xl:h-80">
                 <img alt={product.imageAlt} src={product.imageSrc} className="size-full object-cover" />
               </div>
-              <h3 className="mt-4 text-sm text-gray-700">
+              <h3 className="mt-4 text-base text-gray-700">
                 <a href={product.href}>
                   <span className="absolute inset-0" />
                   {product.name}
                 </a>
               </h3>
-              <p className="mt-1 text-sm text-gray-500">{product.color}</p>
-              <p className="mt-1 text-sm font-medium text-gray-900">{product.price}</p>
+              <p className="mt-1 text-base text-gray-500">{product.color}</p>
+              <p className="mt-1 text-base font-medium text-gray-900">{product.price}</p>
             </div>
           ))}
         </div>
 
-        <div className="mt-8 text-sm md:hidden">
-          <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">
-            Shop the collection
+        <div className="mt-8 text-xl md:hidden">
+          <a href="/products" className="font-medium text-indigo-600 hover:text-indigo-500">
+            Tất cả sản phẩm
             <span aria-hidden="true"> &rarr;</span>
           </a>
         </div>

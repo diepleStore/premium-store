@@ -16,9 +16,9 @@ export const ImageTrailHero = () => {
         "https://product.hstatic.net/200000456445/product/nuoc_hoa_dolce___gabbana_devotion_edp-2_212d29093eb14f128d0f5266203180c2_master.png",
         "https://product.hstatic.net/200000456445/product/www.shoesbagsall_974e26d8e0844679b4f0c895475e3233_1024x1024_7b383909926b4d6c82305ff1263ae750_master.png",
         "https://kyo.vn/wp-content/uploads/2024/12/Son-Yves-Saint-Laurent-YSL-The-Inks-Vinyl-Cream-622-Plum-Liberation-6.png",
-        "https://product.hstatic.net/200000456445/product/_products_tui-nu-dior-medium-book-tote-black-multicolor-m1296zrty-m911_dfc0b6a88fc4450c80d79c0720746044_master.png",
-        "https://product.hstatic.net/200000456445/product/nuoc_hoa_dolce___gabbana_devotion_edp-2_212d29093eb14f128d0f5266203180c2_master.png",
-        "https://product.hstatic.net/200000456445/product/www.shoesbagsall_974e26d8e0844679b4f0c895475e3233_1024x1024_7b383909926b4d6c82305ff1263ae750_master.png",
+        "https://scontent.fsgn8-3.fna.fbcdn.net/v/t39.30808-6/494700103_701556535721055_7614215983910996121_n.jpg?stp=cp6_dst-jpg_tt6&_nc_cat=109&ccb=1-7&_nc_sid=833d8c&_nc_ohc=WW7XKgu6AmcQ7kNvwHw7jkT&_nc_oc=Adm1qjdD5T-AEn8d3ac1RDHz8OMtoED8KzI4GatdtVbzGOdxb-UmHHSsH7k5c2dl85s&_nc_zt=23&_nc_ht=scontent.fsgn8-3.fna&_nc_gid=mv1Ef25TS5M8hqUFGFvfkA&oh=00_AfF1HRSw21MmYpNLcJD_iCACqcI7Ae-6g_fO779ascoDyA&oe=681C846B",
+        "https://scontent.fsgn8-3.fna.fbcdn.net/v/t39.30808-6/494749012_699197359290306_3802928796592357987_n.jpg?_nc_cat=109&ccb=1-7&_nc_sid=127cfc&_nc_ohc=5nRJ8RcfGLMQ7kNvwGxOpRq&_nc_oc=AdnZz44mv9zAOoDXZRl2OmsNY8UX-jOXk_mYRYvzkyhJAmP3Nn3enJ3x9Ga54C0pGPU&_nc_zt=23&_nc_ht=scontent.fsgn8-3.fna&_nc_gid=nh0kLI2uuvPbwtAVxXO68w&oh=00_AfHmJ0L1-Bd5F8Zcx3dseFXeVJZCn-eFIA-5808XUZquAA&oe=681C5C60",
+        "https://scontent.fsgn8-4.fna.fbcdn.net/v/t39.30808-6/495296886_701556915721017_8981410923425920852_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=833d8c&_nc_ohc=XvVV8M0LY5QQ7kNvwE8gsZx&_nc_oc=AdkNpZoCX3ixSBYIfjMreTB94fwE3tBwd-sPYTsEMMsQmH_dloeqMmSK3YJOlyugAPA&_nc_zt=23&_nc_ht=scontent.fsgn8-4.fna&_nc_gid=Vy6ltbZaykpZqPhHxaotmQ&oh=00_AfFuMKkp1LYPjvS4bNTC_2ctxHZp4PbEP_9mxUPpMaYo-Q&oe=681C60FA",
       ]}
     >
       <section className="h-full bg-slate-200">
@@ -32,7 +32,7 @@ const WatermarkWrapper = () => {
   return (
     <>
       <Watermark text="DIEPLE  House" />
-      <Watermark text="PREMIUM  Store" reverse />
+      {/* <Watermark text="PREMIUM  Store" reverse /> */}
     </>
   );
 };
@@ -177,7 +177,7 @@ const MouseImageTrail = ({
 
       {images.map((img: any, index: number) => (
         <img
-          className="pointer-events-none absolute left-0 top-0 h-36 w-auto rounded-xl border-2 border-slate-900 bg-slate-800 object-cover opacity-0"
+          className="pointer-events-none absolute left-0 top-0 h-40 w-auto rounded-xl border-2 border-slate-900 bg-slate-800 object-cover opacity-0"
           src={img}
           alt={`Mouse move image ${index}`}
           key={index}

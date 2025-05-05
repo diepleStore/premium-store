@@ -18,11 +18,12 @@ import {
 import { Bars3Icon, MagnifyingGlassIcon, ShoppingBagIcon, UserIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { cn } from '@/lib/utils'
 import Image from 'next/image'
+import ButtonCloseHeader from './button-close-header'
 
 const navigation = {
   categories: [
     {
-      id: 'women',
+      id: 'thoitrang',
       name: 'Thời trang',
       featured: [
         {
@@ -111,7 +112,7 @@ const navigation = {
       ],
     },
     {
-      id: 'men',
+      id: 'mypham',
       name: 'Mỹ Phẩm',
       featured: [
         {
@@ -148,7 +149,7 @@ const navigation = {
               { name: 'Socks', href: '#' },
             ],
           },
-             {
+          {
             id: 'collection',
             name: 'Danh mục',
             items: [
@@ -303,7 +304,7 @@ export function Header() {
               ))}
             </div>
 
-            <div className="border-t border-gray-200 px-4 py-6">
+            {/* <div className="border-t border-gray-200 px-4 py-6">
               <a href="#" className="-m-2 flex items-center p-2">
                 <img
                   alt=""
@@ -313,12 +314,12 @@ export function Header() {
                 <span className="ml-3 block text-base font-medium text-gray-900">CAD</span>
                 <span className="sr-only">, change currency</span>
               </a>
-            </div>
+            </div> */}
           </DialogPanel>
         </div>
       </Dialog>
 
-      
+
       <header className="relative bg-white">
         <nav aria-label="Top" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="border-b border-gray-200">
@@ -344,90 +345,107 @@ export function Header() {
                 <div className="flex h-full space-x-8">
                   {navigation.categories.map((category) => (
                     <Popover key={category.name} className="flex">
-                      <div className="relative flex">
-                        <PopoverButton className="group relative z-10 flex items-center justify-center text-sm font-medium text-gray-700 transition-colors duration-200 ease-out hover:text-gray-800 data-open:text-indigo-600">
-                          {category.name}
-                          <span
-                            aria-hidden="true"
-                            className="absolute inset-x-0 bottom-0 h-0.5 transition-colors duration-200 ease-out group-data-open:bg-gray-600 sm:mt-5 sm:translate-y-px sm:transform"
-                          />
-                        </PopoverButton>
-                      </div>
+                      {({ close }) => (
+                        <>
+                          <div className="relative flex">
+                            <PopoverButton className="group relative z-10 flex items-center justify-center text-sm font-medium text-gray-700 transition-colors duration-200 ease-out hover:text-gray-800 data-open:text-indigo-600">
+                              {category.name}
+                              <span
+                                aria-hidden="true"
+                                className="absolute inset-x-0 bottom-0 h-0.5 transition-colors duration-200 ease-out group-data-open:bg-gray-600 sm:mt-5 sm:translate-y-px sm:transform"
+                              />
+                            </PopoverButton>
+                          </div>
 
-                      <PopoverPanel
-                        transition
-                        className="absolute inset-x-0 top-full transition data-closed:opacity-0 data-enter:duration-200 data-enter:ease-out data-leave:duration-150 data-leave:ease-in"
-                      >
-                        {/* Presentational element used to render the bottom shadow, if we put the shadow on the actual panel it pokes out the top, so we use this shorter element to hide the top of the shadow */}
-                        <div aria-hidden="true" className="absolute inset-0 top-1/2 bg-white shadow-sm" />
+                          <PopoverPanel
+                            transition
+                            className="absolute inset-x-0 top-full transition data-closed:opacity-0 data-enter:duration-200 data-enter:ease-out data-leave:duration-150 data-leave:ease-in"
+                          >
+                            <div aria-hidden="true" className="absolute inset-0 top-1/2 bg-white shadow-sm" />
 
-                        <div className="relative bg-white">
-                          <div className="mx-auto max-w-7xl px-8">
-                            <div className="grid grid-cols-2 gap-x-8 gap-y-10 py-16">
-                              <div className="grid grid-cols-2 grid-rows-1 gap-8 text-sm">
-                                {category.featured.map((item, itemIdx) => (
-                                  <div
-                                    key={item.name}
-                                    className={cn(
-                                      itemIdx === 0 ? 'col-span-2' : '',
-                                      'group relative overflow-hidden rounded-md bg-gray-100',
-                                    )}
-                                  >
-                                    <img
-                                      alt={item.imageAlt}
-                                      src={item.imageSrc}
-                                      className={cn(
-                                        itemIdx === 0 ? 'aspect-2/1' : 'aspect-square',
-                                        'w-full object-cover group-hover:opacity-75',
-                                      )}
-                                    />
-                                    <div className="absolute inset-0 flex flex-col justify-end">
-                                      <div className="bg-black/60 p-4 text-sm">
-                                        <a href={item.href} className="font-bold text-white">
-                                          <span aria-hidden="true" className="absolute inset-0" />
-                                          {item.name}
-                                        </a>
-                                        {/* <p aria-hidden="true" className="mt-0.5 text-gray-700 sm:mt-1">
-                                          Mua ngay
-                                        </p> */}
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                              <div className="grid grid-cols-3 gap-x-8 gap-y-10 text-sm text-gray-500">
-                                {category.sections.map((column, columnIdx) => (
-                                  <div key={columnIdx} className="space-y-10">
-                                    {column.map((section) => (
-                                      <div key={section.name}>
-                                        <p
-                                          id={`${category.id}-${section.id}-heading`}
-                                          className="font-medium text-gray-900"
-                                        >
-                                          {section.name}
-                                        </p>
-                                        <ul
-                                          role="list"
-                                          aria-labelledby={`${category.id}-${section.id}-heading`}
-                                          className="mt-4 space-y-4"
-                                        >
-                                          {section.items.map((item) => (
-                                            <li key={item.name} className="flex">
-                                              <a href={item.href} className="hover:text-gray-800">
-                                                {item.name}
-                                              </a>
-                                            </li>
-                                          ))}
-                                        </ul>
+                            <div className="relative bg-white">
+                              <div className="mx-auto max-w-7xl px-8">
+                                <div className="grid grid-cols-2 gap-x-8 gap-y-10 py-16">
+                                  <div className="grid grid-cols-2 grid-rows-1 gap-8 text-sm">
+                                    {category.featured.map((item, itemIdx) => (
+                                      <div
+                                        key={item.name}
+                                        className={cn(
+                                          itemIdx === 0 ? 'col-span-2' : '',
+                                          'group relative overflow-hidden rounded-md bg-gray-100',
+                                        )}
+                                      >
+                                        <img
+                                          alt={item.imageAlt}
+                                          src={item.imageSrc}
+                                          className={cn(
+                                            itemIdx === 0 ? 'aspect-2/1' : 'aspect-square',
+                                            'w-full object-cover group-hover:opacity-75',
+                                          )}
+                                        />
+                                        <div className="absolute inset-0 flex flex-col justify-end">
+                                          <div className="bg-black/60 p-4 text-sm">
+                                            <a
+                                              href={item.href}
+                                              className="font-bold text-white"
+                                            >
+                                              <span aria-hidden="true" className="absolute inset-0" />
+                                              {item.name}
+                                            </a>
+                                          </div>
+                                        </div>
                                       </div>
                                     ))}
                                   </div>
-                                ))}
+                                  <div className='flex flex-col justify-between '>
+                                    <div className="grid grid-cols-3 gap-x-8 gap-y-10 text-sm text-gray-500">
+                                      {category.sections.map((column, columnIdx) => (
+                                        <div key={columnIdx} className="space-y-10">
+                                          {column.map((section) => (
+                                            <div key={section.name}>
+                                              <p
+                                                id={`${category.id}-${section.id}-heading`}
+                                                className="font-medium text-gray-900"
+                                              >
+                                                {section.name}
+                                              </p>
+                                              <ul
+                                                role="list"
+                                                aria-labelledby={`${category.id}-${section.id}-heading`}
+                                                className="mt-4 space-y-4"
+                                              >
+                                                {section.items.map((item) => (
+                                                  <li key={item.name} className="flex">
+                                                    <a
+                                                      href={item.href}
+                                                      className="hover:text-gray-800"
+                                                    >
+                                                      {item.name}
+                                                    </a>
+                                                  </li>
+                                                ))}
+                                              </ul>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      ))}
+                                    </div>
+                                    <ButtonCloseHeader onClickProp={() => close()} />
+                                  </div>
+                                </div>
                               </div>
+
                             </div>
-                          </div>
-                        </div>
-                      </PopoverPanel>
+
+                            {/* <div
+                              className='text-black absolute inset-x-0 top-full w-full border-t text-xl hover:bg-slate-200 -mt-2 flex h-12 items-center hover:cursor-pointer justify-center bg-white font-medium'
+                              onClick={() => close()}
+                            >
+                              Đóng lại
+                            </div> */}
+                          </PopoverPanel>
+                        </>
+                      )}
                     </Popover>
                   ))}
 
@@ -444,7 +462,7 @@ export function Header() {
               </PopoverGroup>
 
               {/* Logo */}
-              <a href="#" className="flex">
+              <a href="/" className="flex">
                 <span className="sr-only">DiepLeHouse</span>
                 <Image
                   src={'/assets/logoHeaderWhite.svg'}
@@ -483,8 +501,8 @@ export function Header() {
               </div>
             </div>
           </div>
-        </nav>
-      </header>
-    </div>
+        </nav >
+      </header >
+    </div >
   )
 }
