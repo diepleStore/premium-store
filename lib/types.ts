@@ -7,10 +7,10 @@ export interface ProductDetail {
   images: string[];
   colors: string[];
   sizes: string[];
-  created_at: string | null;
+  created_at: string;
   updated_at: string | null;
   published_at: string | null;
-  options: { name: string; id: number; position: number; product_id: number }[];
+  options: Record<string, any> | null;
 }
 
 export interface ProductVariant {
@@ -20,15 +20,17 @@ export interface ProductVariant {
   option2: string | null;
   price: number;
   inventory_quantity: number;
+  reserved_quantity: number;
   sku: string | null;
   image_id: string | null;
-  created_at: string | null;
+  created_at: string;
   updated_at: string | null;
 }
 
 export interface CartItem {
-  id?: string;
-  user_id?: string;
+  id: string;
+  user_id: string | null;
+  session_id: string | null;
   product_id: string;
   variant_id: string;
   option1: string | null;
@@ -36,13 +38,6 @@ export interface CartItem {
   quantity: number;
   price: number;
   product_title: string;
+  created_at: string;
+  expires_at: string;
 }
-
-export interface FilterState {
-  colors: string[];
-  sizes: string[];
-  vendors: string[];
-  priceRange: [number, number];
-}
-
-export type SortOption = 'price-asc' | 'price-desc' | 'title-asc' | 'title-desc';

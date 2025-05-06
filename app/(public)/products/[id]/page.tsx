@@ -1,162 +1,244 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent } from '@/components/ui/card';
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import ProductImageGallery from '@/components/product-detail-page/ProductImageGallery';
-import ProductColorSelector from '@/components/product-detail-page/ProductColorSelector';
-import ProductSizeSelector from '@/components/product-detail-page/ProductSizeSelector';
-import ProductQuantitySelector from '@/components/product-detail-page/ProductQuantitySelector';
 import { getProductById, getVariant, addToCart } from '@/lib/data';
-import { ProductDetail, ProductVariant } from '@/lib/types';
 import { useProductStore } from '@/lib/store';
+import { ProductDetail, ProductVariant } from '@/lib/types';
+import { createClient } from '@/utils/supabase/client';
 
-export default function ProductDetailPage({ params }: { params: { id: string } }) {
-  const [selectedOption1, setSelectedOption1] = useState<string | null>(null);
-  const [selectedOption2, setSelectedOption2] = useState<string | null>(null);
-  const [selectedQuantity, setSelectedQuantity] = useState(1);
-  const { addToCart: addToStoreCart, sessionId } = useProductStore();
+export default function ProductDetailPage() {
+  const { id } = useParams();
+  const { sessionId, setCart } = useProductStore();
+  const [product, setProduct] = useState<ProductDetail | null>(null);
+  const [variant, setVariant] = useState<ProductVariant | null>(null);
+  const [selectedColor, setSelectedColor] = useState<string>('');
+  const [selectedSize, setSelectedSize] = useState<string>('');
+  const [quantity, setQuantity] = useState<number>(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [stockWarning, setStockWarning] = useState<string | null>(null);
 
-  // Fetch product
-  const { data: product, isLoading: productLoading, error: productError } = useQuery({
-    queryKey: ['product', params.id],
-    queryFn: () => getProductById(params.id),
-    staleTime: 30000, // 30 seconds
-    retry: 2,
-  });
-
-  // Set initial color/size when product loads
+  // Fetch product and initial variant
   useEffect(() => {
-    if (product && product.colors.length > 0 && !selectedOption1) {
-      setSelectedOption1(product.colors[0]);
-    }
-    if (product && product.sizes.length > 0 && !selectedOption2) {
-      setSelectedOption2(product.sizes[0]);
-    }
-  }, [product]);
+    async function fetchProduct() {
+      setLoading(true);
+      const productData = await getProductById(id as string);
+      if (!productData) {
+        setError('Product not found');
+        setLoading(false);
+        return;
+      }
+      setProduct(productData);
 
-  // Fetch variant
-  const { data: variant, isLoading: variantLoading, error: variantError } = useQuery({
-    queryKey: ['variant', product?.id, selectedOption1, selectedOption2],
-    queryFn: () =>
-      product && selectedOption1 && selectedOption2
-        ? getVariant(product.id, selectedOption1, selectedOption2)
-        : Promise.resolve(null),
-    enabled: !!product && !!selectedOption1 && !!selectedOption2,
-    staleTime: 30000, // 30 seconds
-    retry: 2,
-  });
+      // Set default variant (first color and size)
+      const defaultColor = productData.colors[0] || '';
+      const defaultSize = productData.sizes[0] || '';
+      setSelectedColor(defaultColor);
+      setSelectedSize(defaultSize);
 
+      const variantData = await getVariant(id as string, defaultColor, defaultSize);
+      setVariant(variantData);
+      setLoading(false);
+    }
+    fetchProduct();
+  }, [id]);
+
+  // Fetch variant when color or size changes
+  useEffect(() => {
+    async function fetchVariant() {
+      if (selectedColor && selectedSize) {
+        const variantData = await getVariant(id as string, selectedColor, selectedSize);
+        setVariant(variantData);
+        setQuantity(1); // Reset quantity on variant change
+        setStockWarning(null);
+      }
+    }
+    fetchVariant();
+  }, [id, selectedColor, selectedSize]);
+
+  // Real-time subscription for variant stock updates
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel('product_variants')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'product_variants', filter: `id=eq.${variant?.id}` },
+        (payload: any) => {
+          setVariant((prev) => (prev ? { ...prev, ...payload.new } : prev));
+          if (payload.new.inventory_quantity - payload.new.reserved_quantity < quantity) {
+            setStockWarning('Selected quantity exceeds available stock.');
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [variant?.id, quantity]);
+
+  // Handle add to cart
   const handleAddToCart = async () => {
-    if (!variant || !product) {
-      alert('Please select a valid variant');
+    if (!variant || !product) return;
+    if (quantity > (variant.inventory_quantity - variant.reserved_quantity)) {
+      setStockWarning('Selected quantity exceeds available stock.');
       return;
     }
 
     const cartItem = {
       product_id: product.id,
       variant_id: variant.id,
-      option1: selectedOption1!,
-      option2: selectedOption2!,
-      quantity: selectedQuantity,
+      option1: selectedColor,
+      option2: selectedSize,
+      quantity,
       price: variant.price,
       product_title: product.title,
     };
 
-    const result = await addToCart(cartItem, sessionId);
-    if (result) {
-      addToStoreCart(result);
-      alert('Added to cart!');
+    const addedItem = await addToCart(cartItem, sessionId);
+    if (addedItem) {
+      setCart((prev) => [...prev, addedItem]);
+      setStockWarning(null);
+      alert('Item added to cart!');
     } else {
-      alert('Failed to add to cart. Please try again.');
+      setError('Failed to add item to cart. Please try again.');
     }
   };
 
-  if (productLoading || variantLoading) {
+  if (loading) {
     return (
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col md:flex-row gap-8">
-          <div className="md:w-1/2">
-            <Skeleton className="h-[400px] w-full rounded-lg" />
-          </div>
-          <div className="md:w-1/2">
-            <Card>
-              <CardContent className="p-6">
-                <Skeleton className="h-8 w-3/4 mb-2" />
-                <Skeleton className="h-6 w-1/2 mb-4" />
-                <Skeleton className="h-4 w-full mb-2" />
-                <Skeleton className="h-4 w-5/6 mb-6" />
+      <div className="container mx-auto px-4 py-8">
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-8 w-48" />
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Skeleton className="h-64 w-full" />
+              <div>
+                <Skeleton className="h-6 w-32 mb-4" />
+                <Skeleton className="h-6 w-24 mb-4" />
                 <Skeleton className="h-10 w-48 mb-4" />
-                <Skeleton className="h-10 w-48 mb-4" />
-                <Skeleton className="h-10 w-32 mb-4" />
-                <Skeleton className="h-12 w-40" />
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+                <Skeleton className="h-10 w-48" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  if (productError || !product) {
+  if (error || !product) {
     return (
-      <div className="container mx-auto px-4 py-8 text-center">
-        <h2 className="text-2xl font-semibold text-red-600">Product Not Found</h2>
-        <p className="text-gray-600">The product you’re looking for doesn’t exist or is unavailable.</p>
-        <Button asChild className="mt-4">
-          <a href="/products">Back to Products</a>
-        </Button>
+      <div className="container mx-auto px-4 py-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Error</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-red-500">{error || 'Product not found'}</p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex flex-col md:flex-row gap-8">
-        <div className="md:w-1/2">
-          <ProductImageGallery images={product.images} />
-        </div>
-        <div className="md:w-1/2">
-          <Card>
-            <CardContent className="p-6">
-              <h1 className="text-3xl font-bold mb-2">{product.title}</h1>
-              <p className="text-2xl text-gray-800 mb-4">
-                {variant ? (variant.price / 1000).toFixed(3) : 'N/A'} VND
+    <div className="container mx-auto px-4 py-8">
+      <Card>
+        <CardHeader>
+          <CardTitle>{product.title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Product Image */}
+            <div>
+              {product.images[0] ? (
+                <img
+                  src={product.images[0]}
+                  alt={product.title}
+                  className="w-full h-64 object-cover rounded-md"
+                />
+              ) : (
+                <div className="w-full h-64 bg-gray-200 rounded-md flex items-center justify-center">
+                  No Image
+                </div>
+              )}
+            </div>
+            {/* Product Details */}
+            <div>
+              <p className="text-gray-600 mb-4">{product.body_html || 'No description available'}</p>
+              <p className="text-lg font-semibold mb-4">
+                {((variant?.price || 0) / 1000).toFixed(3)} VND
               </p>
-              <p className="text-gray-600 mb-4">{product.vendor}</p>
-              <div
-                className="text-gray-700 mb-6"
-                dangerouslySetInnerHTML={{ __html: product.body_html || '' }}
-              />
-              {variantError && <p className="text-red-500 mb-4">Variant not available</p>}
-              <ProductColorSelector
-                colors={product.colors}
-                selectedOption1={selectedOption1}
-                setSelectedOption1={setSelectedOption1}
-              />
-              <ProductSizeSelector
-                sizes={product.sizes}
-                selectedOption2={selectedOption2}
-                setSelectedOption2={setSelectedOption2}
-              />
-              <ProductQuantitySelector
-                selectedQuantity={selectedQuantity}
-                setSelectedQuantity={setSelectedQuantity}
-                maxQuantity={variant?.inventory_quantity || 0}
-              />
-              <Button
-                className="w-full md:w-auto"
-                onClick={handleAddToCart}
-                disabled={!variant || variant.inventory_quantity <= 0}
-              >
+              {variant && (
+                <p className="text-sm text-gray-500 mb-4">
+                  Available Stock: {variant.inventory_quantity - variant.reserved_quantity}
+                </p>
+              )}
+              {stockWarning && <p className="text-red-500 mb-4">{stockWarning}</p>}
+
+              {/* Variant Selection */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Color</label>
+                <Select value={selectedColor} onValueChange={setSelectedColor}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select color" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {product.colors.map((color) => (
+                      <SelectItem key={color} value={color}>
+                        {color}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Size</label>
+                <Select value={selectedSize} onValueChange={setSelectedSize}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select size" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {product.sizes.map((size) => (
+                      <SelectItem key={size} value={size}>
+                        {size}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Quantity Input */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Quantity</label>
+                <Input
+                  type="number"
+                  min="1"
+                  max={variant ? variant.inventory_quantity - variant.reserved_quantity : 1}
+                  value={quantity}
+                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-24"
+                />
+              </div>
+
+              {/* Add to Cart Button */}
+              <Button onClick={handleAddToCart} disabled={!variant || quantity < 1}>
                 Add to Cart
               </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
