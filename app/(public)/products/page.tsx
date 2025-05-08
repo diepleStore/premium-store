@@ -6,12 +6,75 @@ import { debounce } from 'lodash';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getProducts, ProductWithStock, FilterOptions } from '@/lib/data';
 import { createClient } from '@/utils/supabase/client';
+import { Checkbox } from '@/components/ui/checkbox';
+import { cn } from '@/lib/utils';
 
 const PRODUCTS_PER_PAGE = 9;
+
+interface MultiSelectProps {
+  label: string;
+  options: string[];
+  selected: string[];
+  onChange: (selected: string[]) => void;
+}
+
+function MultiSelect({ label, options, selected, onChange }: MultiSelectProps) {
+  return (
+    <div>
+      <label className="block text-sm font-medium mb-1">{label}</label>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" className="w-full justify-between">
+            {selected.length > 0 ? `${selected.length} selected` : `Select ${label.toLowerCase()}`}
+            <span>▼</span>
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-64">
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {options.map((option) => (
+              <div key={option} className="flex items-center space-x-2">
+                <Checkbox
+                  id={option}
+                  checked={selected.includes(option)}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      onChange([...selected, option]);
+                    } else {
+                      onChange(selected.filter((item) => item !== option));
+                    }
+                  }}
+                />
+                <label htmlFor={option} className="text-sm">
+                  {option}
+                </label>
+              </div>
+            ))}
+          </div>
+          {selected.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2 w-full"
+              onClick={() => onChange([])}
+            >
+              Clear
+            </Button>
+          )}
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
 
 export default function ProductListPage() {
   const [products, setProducts] = useState<ProductWithStock[]>([]);
@@ -22,10 +85,10 @@ export default function ProductListPage() {
     sizes: [],
   });
   const [filters, setFilters] = useState<{
-    product_type?: string;
-    vendor?: string;
-    color?: string;
-    size?: string;
+    product_type?: string[];
+    vendor?: string[];
+    color?: string[];
+    size?: string[];
     search?: string;
     sort?: 'price-asc' | 'price-desc' | 'name-asc' | 'name-desc';
   }>({});
@@ -80,10 +143,10 @@ export default function ProductListPage() {
   // Debounced filter change handler
   const debouncedFilterChange = useMemo(
     () =>
-      debounce((key: keyof typeof filters, value: string) => {
+      debounce((key: keyof typeof filters, value: string[] | string) => {
         setFilters((prev) => ({
           ...prev,
-          [key]: value === 'all' ? undefined : value,
+          [key]: value.length === 0 ? undefined : value,
         }));
         setPage(0); // Reset to first page on filter change
       }, 300),
@@ -159,82 +222,30 @@ export default function ProductListPage() {
                   onChange={(e) => debouncedSearchChange(e.target.value)}
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Product Type</label>
-                <Select
-                  value={filters.product_type || 'all'}
-                  onValueChange={(value) => debouncedFilterChange('product_type', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select product type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    {filterOptions.product_types.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Vendor</label>
-                <Select
-                  value={filters.vendor || 'all'}
-                  onValueChange={(value) => debouncedFilterChange('vendor', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select vendor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    {filterOptions.vendors.map((vendor) => (
-                      <SelectItem key={vendor} value={vendor}>
-                        {vendor}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Color</label>
-                <Select
-                  value={filters.color || 'all'}
-                  onValueChange={(value) => debouncedFilterChange('color', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select color" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    {filterOptions.colors.map((color) => (
-                      <SelectItem key={color} value={color}>
-                        {color}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Size</label>
-                <Select
-                  value={filters.size || 'all'}
-                  onValueChange={(value) => debouncedFilterChange('size', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select size" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    {filterOptions.sizes.map((size) => (
-                      <SelectItem key={size} value={size}>
-                        {size}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <MultiSelect
+                label="Product Type"
+                options={filterOptions.product_types}
+                selected={filters.product_type || []}
+                onChange={(values) => debouncedFilterChange('product_type', values)}
+              />
+              <MultiSelect
+                label="Vendor"
+                options={filterOptions.vendors}
+                selected={filters.vendor || []}
+                onChange={(values) => debouncedFilterChange('vendor', values)}
+              />
+              <MultiSelect
+                label="Color"
+                options={filterOptions.colors}
+                selected={filters.color || []}
+                onChange={(values) => debouncedFilterChange('color', values)}
+              />
+              <MultiSelect
+                label="Size"
+                options={filterOptions.sizes}
+                selected={filters.size || []}
+                onChange={(values) => debouncedFilterChange('size', values)}
+              />
               <div>
                 <label className="block text-sm font-medium mb-1">Sort By</label>
                 <Select

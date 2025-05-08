@@ -29,3 +29,11 @@ export const useProductStore = create<ProductStore>()(
     }
   )
 );
+
+// Initialize sessionId if not set
+if (typeof window !== 'undefined') {
+  const { sessionId, setSessionId } = useProductStore.getState();
+  if (!sessionId) {
+    setSessionId(uuidv4());
+  }
+}

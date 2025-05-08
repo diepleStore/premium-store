@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -11,10 +11,12 @@ import { getProductById, getVariant, addToCart } from '@/lib/data';
 import { useProductStore } from '@/lib/store';
 import { ProductDetail, ProductVariant } from '@/lib/types';
 import { createClient } from '@/utils/supabase/client';
+import { v4 as uuidv4 } from 'uuid';
 
 export default function ProductDetailPage() {
   const { id } = useParams();
   const { sessionId, setCart } = useProductStore();
+  const router = useRouter();
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [variant, setVariant] = useState<ProductVariant | null>(null);
   const [selectedColor, setSelectedColor] = useState<string>('');
@@ -24,16 +26,21 @@ export default function ProductDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [stockWarning, setStockWarning] = useState<string | null>(null);
 
+  console.log('ProductDetailPage: sessionId=', sessionId);
+  console.log('Selected variant_id:', variant?.id);
+
   // Fetch product and initial variant
   useEffect(() => {
     async function fetchProduct() {
       setLoading(true);
       const productData = await getProductById(id as string);
       if (!productData) {
+        console.error('ProductDetailPage: Product not found', { id });
         setError('Product not found');
         setLoading(false);
         return;
       }
+      console.log('ProductDetailPage: Fetched product', { id, title: productData.title, colors: productData.colors, sizes: productData.sizes });
       setProduct(productData);
 
       // Set default variant (first color and size)
@@ -43,7 +50,19 @@ export default function ProductDetailPage() {
       setSelectedSize(defaultSize);
 
       const variantData = await getVariant(id as string, defaultColor, defaultSize);
-      setVariant(variantData);
+      if (!variantData) {
+        console.error('ProductDetailPage: Variant not found', { id, defaultColor, defaultSize });
+        setError('Variant not found');
+      } else {
+        console.log('ProductDetailPage: Fetched initial variant', { variantId: variantData.id, option1: defaultColor, option2: defaultSize });
+        setVariant({
+          ...variantData,
+          sku: variantData.sku || null,
+          image_id: variantData.image_id || null,
+          created_at: variantData.created_at || new Date().toISOString(),
+          updated_at: variantData.updated_at || new Date().toISOString(),
+        });
+      }
       setLoading(false);
     }
     fetchProduct();
@@ -54,7 +73,13 @@ export default function ProductDetailPage() {
     async function fetchVariant() {
       if (selectedColor && selectedSize) {
         const variantData = await getVariant(id as string, selectedColor, selectedSize);
-        setVariant(variantData);
+        if (!variantData) {
+          console.error('ProductDetailPage: Variant not found', { id, selectedColor, selectedSize });
+          setError('Variant not found');
+        } else {
+          console.log('ProductDetailPage: Fetched variant', { variantId: variantData.id, option1: selectedColor, option2: selectedSize });
+          setVariant(variantData);
+        }
         setQuantity(1); // Reset quantity on variant change
         setStockWarning(null);
       }
@@ -65,12 +90,15 @@ export default function ProductDetailPage() {
   // Real-time subscription for variant stock updates
   useEffect(() => {
     const supabase = createClient();
+    if (!variant?.id) return;
+
     const channel = supabase
       .channel('product_variants')
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'product_variants', filter: `id=eq.${variant?.id}` },
+        { event: 'UPDATE', schema: 'public', table: 'product_variants', filter: `id=eq.${variant.id}` },
         (payload: any) => {
+          console.log('ProductDetailPage: Variant stock updated', { variantId: variant.id, payload });
           setVariant((prev) => (prev ? { ...prev, ...payload.new } : prev));
           if (payload.new.inventory_quantity - payload.new.reserved_quantity < quantity) {
             setStockWarning('Selected quantity exceeds available stock.');
@@ -86,8 +114,13 @@ export default function ProductDetailPage() {
 
   // Handle add to cart
   const handleAddToCart = async () => {
-    if (!variant || !product) return;
+    if (!variant || !product) {
+      console.error('ProductDetailPage: Missing product or variant', { product, variant });
+      setError('Please select a valid product and variant');
+      return;
+    }
     if (quantity > (variant.inventory_quantity - variant.reserved_quantity)) {
+      console.error('ProductDetailPage: Insufficient stock', { variantId: variant.id, quantity, available: variant.inventory_quantity - variant.reserved_quantity });
       setStockWarning('Selected quantity exceeds available stock.');
       return;
     }
@@ -102,13 +135,23 @@ export default function ProductDetailPage() {
       product_title: product.title,
     };
 
-    const addedItem = await addToCart(cartItem, sessionId);
-    if (addedItem) {
+    const supabase = createClient();
+    console.log('Supabase schema:', supabase.schema); // Should be 'public'
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // Fallback sessionId
+    const validSessionId = sessionId && typeof sessionId === 'string' ? sessionId : uuidv4();
+
+    try {
+      console.log('ProductDetailPage: Calling addToCart', { cartItem, user, sessionId: validSessionId });
+      const addedItem = await addToCart(cartItem, user, validSessionId);
       setCart((prev) => [...prev, addedItem]);
       setStockWarning(null);
       alert('Item added to cart!');
-    } else {
-      setError('Failed to add item to cart. Please try again.');
+      router.push('/cart');
+    } catch (error: any) {
+      console.error('ProductDetailPage: Failed to add to cart', { error: error?.message, cartItem });
+      setError(`Failed to add item to cart: ${error?.message}`);
     }
   };
 
