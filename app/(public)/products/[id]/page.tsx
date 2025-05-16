@@ -12,6 +12,7 @@ import { useProductStore } from '@/lib/store';
 import { ProductDetail, ProductVariant } from '@/lib/types';
 import { createClient } from '@/utils/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
+import ShopeeProductSearch from '@/components/product-detail-page/ShopeeProductSearch';
 
 export default function ProductDetailPage() {
   const { id } = useParams();
@@ -33,6 +34,9 @@ export default function ProductDetailPage() {
   useEffect(() => {
     async function fetchProduct() {
       setLoading(true);
+
+  
+
       const productData = await getProductById(id as string);
       if (!productData) {
         console.error('ProductDetailPage: Product not found', { id });
@@ -193,6 +197,8 @@ export default function ProductDetailPage() {
     );
   }
 
+  const htmlString = product.body_html || '<p>No description available</p>';
+
   return (
     <div className="container mx-auto px-4 py-8">
       <Card>
@@ -203,13 +209,15 @@ export default function ProductDetailPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Product Image */}
             <div>
-              {product.images[0] ? (
+              {product?.images?.length > 0 ? product.images.map((imgLink, imgLinkKey) =>
+              (
                 <img
-                  src={product.images[0]}
+                  key={imgLinkKey}
+                  src={imgLink}
                   alt={product.title}
-                  className="w-full h-64 object-cover rounded-md"
+                  className="w-full h-64 object-cover rounded-md mb-2"
                 />
-              ) : (
+              )) : (
                 <div className="w-full h-64 bg-gray-200 rounded-md flex items-center justify-center">
                   No Image
                 </div>
@@ -217,8 +225,10 @@ export default function ProductDetailPage() {
             </div>
             {/* Product Details */}
             <div>
-              <p className="text-gray-600 mb-4">{product.body_html || 'No description available'}</p>
-              <p className="text-lg font-semibold mb-4">
+
+              <h2 className="text-2xl font-bold mb-4">{product.title}</h2>
+
+              =              <p className="text-lg font-semibold mb-4">
                 {((variant?.price || 0) / 1000).toFixed(3)} VND
               </p>
               {variant && (
@@ -261,6 +271,7 @@ export default function ProductDetailPage() {
                 </Select>
               </div>
 
+
               {/* Quantity Input */}
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-1">Quantity</label>
@@ -274,14 +285,22 @@ export default function ProductDetailPage() {
                 />
               </div>
 
+              <span>noi dung</span>
+              <div
+                dangerouslySetInnerHTML={{ __html: htmlString }}
+              />
+
               {/* Add to Cart Button */}
               <Button onClick={handleAddToCart} disabled={!variant || quantity < 1}>
                 Add to Cart
               </Button>
+
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {product?.title?.length > 0 && <ShopeeProductSearch name={product.title} />}
     </div>
   );
 }

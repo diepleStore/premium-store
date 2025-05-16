@@ -101,11 +101,15 @@ export default function ProductListPage() {
   useEffect(() => {
     async function fetchProducts() {
       setLoading(true);
+      
       const { products: fetchedProducts, filterOptions: fetchedOptions, total: fetchedTotal } = await getProducts({
         ...filters,
         limit: PRODUCTS_PER_PAGE,
         offset: page * PRODUCTS_PER_PAGE,
       });
+
+      console.log('fetchedProducts', { fetchedProducts, fetchedOptions, fetchedTotal})
+
       setProducts(fetchedProducts);
       setFilterOptions(fetchedOptions);
       setTotal(fetchedTotal);
