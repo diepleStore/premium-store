@@ -1,8 +1,7 @@
-import { SortOption } from "./types";
 
 export const DEFAULT_PRICE_RANGE: [number, number] = [0, 1000];
 
-export const SORT_OPTIONS: SortOption[] = [
+export const SORT_OPTIONS = [
   'price-asc',
   'price-desc',
   'name-asc',
