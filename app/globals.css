@@ -62,6 +62,13 @@
 @layer base {
   * {
     @apply border-border;
+    
+    /* Hide scrollbar globally */
+    ::-webkit-scrollbar {
+      display: none;
+    }
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
   }
   body {
     @apply bg-background text-foreground;
