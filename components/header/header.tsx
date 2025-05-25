@@ -202,7 +202,7 @@ export function Header() {
   const [open, setOpen] = useState(false)
 
   return (
-    <div className="bg-white fixed z-[500] w-full">
+    <div className="bg-white fixed z-500 w-full">
       {/* Mobile menu */}
       <Dialog open={open} onClose={setOpen} className="relative z-40 lg:hidden">
         <DialogBackdrop
@@ -361,7 +361,7 @@ export function Header() {
                             transition
                             className="absolute inset-x-0 top-full transition data-closed:opacity-0 data-enter:duration-200 data-enter:ease-out data-leave:duration-150 data-leave:ease-in"
                           >
-                            <div aria-hidden="true" className="absolute inset-0 top-1/2 bg-white shadow-sm" />
+                            <div aria-hidden="true" className="absolute inset-0 top-1/2 bg-white shadow-xs" />
 
                             <div className="relative bg-white">
                               <div className="mx-auto max-w-7xl px-8">

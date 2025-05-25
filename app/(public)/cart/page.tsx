@@ -9,6 +9,7 @@ import { getCartItems, removeFromCart, updateCartItemQuantity } from '@/lib/data
 import { CartItem } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/utils/supabase/client';
+import Link from 'next/link';
 
 export default function CartPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -147,9 +148,11 @@ export default function CartPage() {
               <p className="text-lg font-semibold">
                 Total: {(totalPrice / 1000).toFixed(3)} VND
               </p>
-              <Button className="mt-4 w-full" disabled>
-                Proceed to Checkout
-              </Button>
+              <Link className="mt-4 w-full" href="/checkout">
+                <Button className="w-full" variant="outline">
+                  Proceed to Checkout
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </div>

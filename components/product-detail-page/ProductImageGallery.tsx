@@ -9,7 +9,7 @@ export default function ProductImageGallery({ images }: ProductImageGalleryProps
     <div className="relative">
       <div className="flex overflow-x-auto space-x-4 pb-4 snap-x snap-mandatory">
         {images.map((image, index) => (
-          <div key={index} className="flex-shrink-0 snap-center">
+          <div key={index} className="shrink-0 snap-center">
             <Image
               src={image}
               alt={`Product image ${index + 1}`}

@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 @layer base {
   :root {
@@ -60,9 +58,7 @@
 }
 
 @layer base {
-  * {
-    @apply border-border;
-    
+  * {    
     /* Hide scrollbar globally */
     ::-webkit-scrollbar {
       display: none;
@@ -71,7 +67,6 @@
     scrollbar-width: none; /* Firefox */
   }
   body {
-    @apply bg-background text-foreground;
     font-family: 'timenewroman', sans-serif;
     font-weight: semibold;
   }
