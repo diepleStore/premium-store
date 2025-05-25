@@ -202,7 +202,7 @@ export function Header() {
   const [open, setOpen] = useState(false)
 
   return (
-    <div className="bg-white fixed z-[500] w-full">
+    <div className="bg-white fixed z-500 w-full">
       {/* Mobile menu */}
       <Dialog open={open} onClose={setOpen} className="relative z-40 lg:hidden">
         <DialogBackdrop
@@ -322,26 +322,33 @@ export function Header() {
 
       <header className="relative bg-white">
         <nav aria-label="Top" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="border-b border-gray-200">
-            <div className="flex h-16 items-center justify-between">
-              <div className="flex flex-1 items-center lg:hidden">
+          <div className="border-b border-gray-400">
+            <div className="flex h-[70px] items-center justify-between">
+              <div className="flex flex-1 items-center">
                 <button
                   type="button"
                   onClick={() => setOpen(true)}
                   className="-ml-2 rounded-md bg-white p-2 text-gray-400"
                 >
                   <span className="sr-only">Open menu</span>
-                  <Bars3Icon aria-hidden="true" className="size-6" />
+                  {/* <Bars3Icon aria-hidden="true" className="size-6" /> */}
+                  <Image
+                    src={'/assets/icons/three-line-menu-icon.svg'}
+                    alt='DiepLeHouse'
+                    className='w-[24px] h-[24px]'
+                    width={24}
+                    height={24}
+                  />
                 </button>
 
-                <a href="#" className="ml-2 p-2 text-gray-400 hover:text-gray-500">
+                {/* <a href="#" className="ml-2 p-2 text-gray-400 hover:text-gray-500">
                   <span className="sr-only">Search</span>
                   <MagnifyingGlassIcon aria-hidden="true" className="size-6" />
-                </a>
+                </a> */}
               </div>
 
               {/* Flyout menus */}
-              <PopoverGroup className="hidden lg:block lg:flex-1 lg:self-stretch">
+              {/* <PopoverGroup className="hidden lg:block lg:flex-1 lg:self-stretch">
                 <div className="flex h-full space-x-8">
                   {navigation.categories.map((category) => (
                     <Popover key={category.name} className="flex">
@@ -361,7 +368,7 @@ export function Header() {
                             transition
                             className="absolute inset-x-0 top-full transition data-closed:opacity-0 data-enter:duration-200 data-enter:ease-out data-leave:duration-150 data-leave:ease-in"
                           >
-                            <div aria-hidden="true" className="absolute inset-0 top-1/2 bg-white shadow-sm" />
+                            <div aria-hidden="true" className="absolute inset-0 top-1/2 bg-white shadow-xs" />
 
                             <div className="relative bg-white">
                               <div className="mx-auto max-w-7xl px-8">
@@ -436,13 +443,6 @@ export function Header() {
                               </div>
 
                             </div>
-
-                            {/* <div
-                              className='text-black absolute inset-x-0 top-full w-full border-t text-xl hover:bg-slate-200 -mt-2 flex h-12 items-center hover:cursor-pointer justify-center bg-white font-medium'
-                              onClick={() => close()}
-                            >
-                              Đóng lại
-                            </div> */}
                           </PopoverPanel>
                         </>
                       )}
@@ -459,42 +459,60 @@ export function Header() {
                     </a>
                   ))}
                 </div>
-              </PopoverGroup>
+              </PopoverGroup> */}
 
               {/* Logo */}
               <a href="/" className="flex">
                 <span className="sr-only">DiepLeHouse</span>
-                <Image
-                  src={'/assets/logoHeaderWhite.svg'}
+                <img
+                  src={'/assets/icons/dieple-logo.svg'}
                   alt='DiepLeHouse'
-                  className='w-[60px] h-[60px]'
-                  width={60}
-                  height={60}
+                  className='w-[64px] h-[64px] sm:h-[84px] sm:w-[84px]'
                 />
               </a>
 
               <div className="flex flex-1 items-center justify-end">
 
                 {/* Search */}
-                <a href="#" className="ml-6 hidden p-2 text-gray-400 hover:text-gray-500 lg:block">
+                <a href="#" className="p-2 text-gray-400 hover:text-gray-500 block">
                   <span className="sr-only">Search</span>
-                  <MagnifyingGlassIcon aria-hidden="true" className="size-6" />
+                  <img
+                    src={'/assets/icons/human-icon.svg'}
+                    alt='DiepLeHouse'
+                    className='w-[22px] h-[22px] sm:h-[24px]'
+                  />
+                </a>
+
+                {/* Search */}
+                <a href="#" className="p-2 text-gray-400 hover:text-gray-500 block lg:ml-4">
+                  <span className="sr-only">Search</span>
+                  <img
+                    src={'/assets/icons/search-icon.svg'}
+                    alt='DiepLeHouse'
+                    className='w-[20px] h-[20px] sm:h-[24px] sm:w-[24px]'
+                  />
                 </a>
 
                 {/* Account */}
                 <a href="#" className="p-2 text-gray-400 hover:text-gray-500 lg:ml-4">
                   <span className="sr-only">Account</span>
-                  <UserIcon aria-hidden="true" className="size-6" />
+                  <img
+                    src={'/assets/icons/heart-icon.svg'}
+                    alt='DiepLeHouse'
+                    className='w-[24px] h-[24px] sm:h-[24px]'
+                  />
                 </a>
 
                 {/* Cart */}
                 <div className="ml-4 flow-root lg:ml-6">
                   <a href="/cart" className="group -m-2 flex items-center p-2">
-                    <ShoppingBagIcon
-                      aria-hidden="true"
-                      className="size-6 shrink-0 text-gray-400 group-hover:text-gray-500"
+                    <img
+                      src={'/assets/icons/cart-icon.svg'}
+                      alt='DiepLeHouse'
+                      className='w-[20px] h-[20px] sm:h-[24px]'
                     />
-                    <span className="ml-2 text-sm font-medium text-gray-700 group-hover:text-gray-800">0</span>
+
+                    {/* <span className="ml-2 text-sm font-medium text-gray-700 group-hover:text-gray-800">0</span> */}
                     <span className="sr-only">items in cart, view bag</span>
                   </a>
                 </div>

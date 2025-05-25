@@ -1,6 +1,29 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'Cormorant';
+  src: url('/fonts/CormorantGaramond-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Cormorant-Bold';
+  src: url('/fonts/CormorantGaramond-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Mont';
+  src: url('/fonts/Montserrat-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 
 @layer base {
   :root {
@@ -60,9 +83,7 @@
 }
 
 @layer base {
-  * {
-    @apply border-border;
-    
+  * {    
     /* Hide scrollbar globally */
     ::-webkit-scrollbar {
       display: none;
@@ -71,8 +92,12 @@
     scrollbar-width: none; /* Firefox */
   }
   body {
-    @apply bg-background text-foreground;
-    font-family: 'timenewroman', sans-serif;
+    font-family: 'Cormorant', 'timenewroman', sans-serif;
     font-weight: semibold;
+  }
+
+  .text-bold {
+    font-family: 'Cormorant-Bold', 'timenewroman', sans-serif;
+    font-weight: bold;
   }
 }

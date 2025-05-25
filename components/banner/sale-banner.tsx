@@ -54,7 +54,7 @@ export const SaleBannerHome = () => {
   };
 
   return (
-    <div className="relative overflow-hidden py-4 pb-1 md:pb-6 bg-gradient-to-b from-slate-200 to-white">
+    <div className="relative overflow-hidden py-4 pb-1 md:pb-6 bg-linear-to-b from-slate-200 to-white">
       <motion.div
         drag="x"
         dragConstraints={{
@@ -133,8 +133,8 @@ const Dots = ({
 const GradientEdges = () => {
   return (
     <>
-      <div className="pointer-events-none absolute bottom-0 left-0 top-0 w-[10vw] max-w-[100px] bg-gradient-to-r from-slate-200 to-neutral-950/0" />
-      <div className="pointer-events-none absolute bottom-0 right-0 top-0 w-[10vw] max-w-[100px] bg-gradient-to-l from-slate-200 to-neutral-950/0" />
+      <div className="pointer-events-none absolute bottom-0 left-0 top-0 w-[10vw] max-w-[100px] bg-linear-to-r from-slate-200 to-neutral-950/0" />
+      <div className="pointer-events-none absolute bottom-0 right-0 top-0 w-[10vw] max-w-[100px] bg-linear-to-l from-slate-200 to-neutral-950/0" />
     </>
   );
 };
