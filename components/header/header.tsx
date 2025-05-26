@@ -20,191 +20,13 @@ import { cn } from '@/lib/utils'
 import Image from 'next/image'
 import ButtonCloseHeader from './button-close-header'
 
-const navigation = {
-  categories: [
-    {
-      id: 'thoitrang',
-      name: 'Thời trang',
-      featured: [
-        {
-          name: 'Hàng Mới Về',
-          href: '#',
-          imageSrc: 'https://1102style.vn/wp-content/uploads/2024/01/shop-quan-ao-gucci-nu-5.jpg',
-          imageAlt: 'Models sitting back to back, wearing Basic Tee in black and bone.',
-        },
-        {
-          name: 'Túi Xách',
-          href: '#',
-          imageSrc: 'https://product.hstatic.net/200000456445/product/_products_tui-nu-dior-medium-book-tote-black-multicolor-m1296zrty-m911_dfc0b6a88fc4450c80d79c0720746044_master.png',
-          imageAlt: 'Close up of Basic Tee fall bundle with off-white, ochre, olive, and black tees.',
-        },
-        {
-          name: 'Phụ Kiện',
-          href: '#',
-          imageSrc: 'https://www.watchstore.vn/upload_images/images/news/2024/dong-ho-nu-nhat-ban-8-1630386513574.jpg',
-          imageAlt: 'Model wearing minimalist watch with black wristband and white watch face.',
-        },
-      ],
-      sections: [
-        [
-          {
-            id: 'shoes',
-            name: 'Giày',
-            items: [
-              { name: 'Sneakers', href: '#' },
-              { name: 'Boots', href: '#' },
-              { name: 'Flats', href: '#' },
-              { name: 'Sandals', href: '#' },
-              { name: 'Heels', href: '#' },
-              { name: 'Socks', href: '#' },
-            ],
-          },
-          {
-            id: 'collection',
-            name: 'Danh mục',
-            items: [
-              { name: 'Tất cả sản phẩm', href: '#' },
-              { name: 'Sản phẩm Hot', href: '#' },
-              { name: 'Hàng mới về', href: '#' },
-              { name: 'Sale', href: '#' },
-            ],
-          },
-        ],
-        [
-          {
-            id: 'clothing',
-            name: 'Áo quần',
-            items: [
-              { name: 'Basic Tees', href: '#' },
-              { name: 'Artwork Tees', href: '#' },
-              { name: 'Tops', href: '#' },
-              { name: 'Bottoms', href: '#' },
-              { name: 'Swimwear', href: '#' },
-              { name: 'Underwear', href: '#' },
-            ],
-          },
-          {
-            id: 'accessories',
-            name: 'Phụ kiện',
-            items: [
-              { name: 'Đồng hồ', href: '#' },
-              { name: 'Ví', href: '#' },
-              { name: 'Mắt kính', href: '#' },
-              { name: 'Nón', href: '#' },
-              { name: 'Thắt lưng', href: '#' },
-            ],
-          },
-        ],
-        [
-          {
-            id: 'brands',
-            name: 'Thương hiệu',
-            items: [
-              { name: 'Addidas', href: '#' },
-              { name: 'Nike', href: '#' },
-              { name: 'Charles&Keith', href: '#' },
-              { name: 'Pedro', href: '#' },
-              { name: 'Gucci', href: '#' },
-              { name: 'MLB', href: '#' }
-            ],
-          },
-        ],
-      ],
-    },
-    {
-      id: 'mypham',
-      name: 'Mỹ Phẩm',
-      featured: [
-        {
-          name: 'Nước hoa',
-          href: '#',
-          imageSrc: 'https://product.hstatic.net/200000456445/product/nuoc_hoa_dolce___gabbana_devotion_edp-2_212d29093eb14f128d0f5266203180c2_master.png',
-          imageAlt:
-            'Wooden shelf with gray and olive drab green baseball caps, next to wooden clothes hanger with sweaters.',
-        },
-        {
-          name: 'Hàng mới về',
-          href: '#',
-          imageSrc:
-            'https://kyo.vn/wp-content/uploads/2024/12/Son-Yves-Saint-Laurent-YSL-The-Inks-Vinyl-Cream-622-Plum-Liberation-6.png',
-          imageAlt: 'Drawstring top with elastic loop closure and textured interior padding.',
-        },
-        {
-          name: 'Son môi',
-          href: '#',
-          imageSrc: 'https://img.websosanh.vn/v2/users/review/images/ad5c340tt4fuy.jpg?compress=85',
-          imageAlt:
-            'Three shirts in gray, white, and blue arranged on table with same line drawing of hands and shapes overlapping on front of shirt.',
-        },
-      ],
-      sections: [
-        [
-          {
-            id: 'shoes',
-            name: 'Nước hoa',
-            items: [
-              { name: 'Sneakers', href: '#' },
-              { name: 'Boots', href: '#' },
-              { name: 'Sandals', href: '#' },
-              { name: 'Socks', href: '#' },
-            ],
-          },
-          {
-            id: 'collection',
-            name: 'Danh mục',
-            items: [
-              { name: 'Tất cả sản phẩm', href: '#' },
-              { name: 'Sản phẩm Hot', href: '#' },
-              { name: 'Hàng mới về', href: '#' },
-              { name: 'Sale', href: '#' },
-            ],
-          },
-        ],
-        [
-          {
-            id: 'collection',
-            name: 'Chăm sóc da',
-            items: [
-              { name: 'Mặt nạ', href: '#' },
-              { name: 'Rửa mặt-Tẩy trang', href: '#' },
-              { name: 'Son môi', href: '#' },
-            ],
-          },
-          {
-            id: 'accessories',
-            name: 'Thiết bị',
-            items: [
-              { name: 'Máy rửa mặt', href: '#' },
-            ],
-          },
-        ],
-        [
-          {
-            id: 'brands',
-            name: 'Thương hiệu',
-            items: [
-              { name: 'YSL', href: '#' },
-              { name: '3CE', href: '#' },
-              { name: 'Nelson', href: '#' },
-              { name: 'Gucci', href: '#' },
-            ],
-          },
-        ],
-      ],
-    },
-  ],
-  pages: [
-    { name: 'Blog', href: '#' },
-  ],
-}
-
 export function Header() {
   const [open, setOpen] = useState(false)
 
   return (
     <div className="bg-white fixed z-500 w-full">
       {/* Mobile menu */}
-      <Dialog open={open} onClose={setOpen} className="relative z-40 lg:hidden">
+      <Dialog open={open} onClose={setOpen} className="relative z-40">
         <DialogBackdrop
           transition
           className="fixed inset-0 bg-black/25 transition-opacity duration-300 ease-linear data-closed:opacity-0"
@@ -226,8 +48,27 @@ export function Header() {
               </button>
             </div>
 
+            <div className='mt-10 ml-4 flex flex-col gap-7' >
+              <div>
+                <span className='uppercase font-["Mont"] font-[600] text-lg' >Danh mục</span>
+                <div className='flex flex-col gap-7 border-l pl-2 mt-6 mb-2 ml-3' >
+                  <span className='uppercase font-["Mont"] font-[400] text-lg' >Mỹ Phẩm</span>
+                  <span className='uppercase font-["Mont"] font-[400] text-lg' >Thời Trang</span>
+                  <span className='uppercase font-["Mont"] font-[400] text-lg' >Nhà cửa & đời sống</span>
+                  <span className='uppercase font-["Mont"] font-[400] text-lg' >Mẹ & bé</span>
+                </div>
+              </div>
+              <span className='uppercase font-["Mont"] font-[600] text-lg' >DIỆP LÊ CHOICES</span>
+              <span className='uppercase font-["Mont"] font-[600] text-lg' >DIỆP LÊ COLLAB</span>
+              <span className='uppercase font-["Mont"] font-[600] text-lg' >DIỆP LÊ PASS</span>
+              <span className='uppercase font-["Mont"] font-[600] text-lg' >ĐẠI SỨ - ĐỘC QUYỀN</span>
+              <span className='uppercase font-["Mont"] font-[600] text-lg' >TESTING</span>
+              <span className='uppercase font-["Mont"] font-[600] text-lg' >BLOG</span>
+
+            </div>
+
             {/* Links */}
-            <TabGroup className="mt-2">
+            {/* <TabGroup className="mt-2">
               <div className="border-b border-gray-200">
                 <TabList className="-mb-px flex space-x-8 px-4">
                   {navigation.categories.map((category) => (
@@ -257,9 +98,6 @@ export function Header() {
                                 <span aria-hidden="true" className="absolute inset-0" />
                                 {item.name}
                               </a>
-                              {/* <p aria-hidden="true" className="mt-0.5 text-gray-700 sm:mt-1">
-                                Mua ngay
-                              </p> */}
                             </div>
                           </div>
                         </div>
@@ -292,9 +130,9 @@ export function Header() {
                   </TabPanel>
                 ))}
               </TabPanels>
-            </TabGroup>
+            </TabGroup> */}
 
-            <div className="space-y-6 border-t border-gray-200 px-4 py-6">
+            {/* <div className="space-y-6 border-t border-gray-200 px-4 py-6">
               {navigation.pages.map((page) => (
                 <div key={page.name} className="flow-root">
                   <a href={page.href} className="-m-2 block p-2 font-medium text-gray-900">
@@ -302,7 +140,7 @@ export function Header() {
                   </a>
                 </div>
               ))}
-            </div>
+            </div> */}
 
             {/* <div className="border-t border-gray-200 px-4 py-6">
               <a href="#" className="-m-2 flex items-center p-2">
@@ -327,18 +165,30 @@ export function Header() {
               <div className="flex flex-1 items-center">
                 <button
                   type="button"
-                  onClick={() => setOpen(true)}
+                  onClick={() => setOpen(!open)}
                   className="-ml-2 rounded-md bg-white p-2 text-gray-400"
                 >
                   <span className="sr-only">Open menu</span>
                   {/* <Bars3Icon aria-hidden="true" className="size-6" /> */}
-                  <Image
-                    src={'/assets/icons/three-line-menu-icon.svg'}
-                    alt='DiepLeHouse'
-                    className='w-[24px] h-[24px]'
-                    width={24}
-                    height={24}
-                  />
+                  {
+                    open ? (
+                      <Image
+                        src={'/assets/icons/close-menu-icon.svg'}
+                        alt='DiepLeHouse'
+                        className='w-[24px] h-[24px]'
+                        width={24}
+                        height={24}
+                      />
+                    ) : (
+                      <Image
+                        src={'/assets/icons/three-line-menu-icon.svg'}
+                        alt='DiepLeHouse'
+                        className='w-[24px] h-[24px]'
+                        width={24}
+                        height={24}
+                      />
+                    )
+                  }
                 </button>
 
                 {/* <a href="#" className="ml-2 p-2 text-gray-400 hover:text-gray-500">

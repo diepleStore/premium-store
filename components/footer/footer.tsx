@@ -13,7 +13,7 @@ export default function Footer() {
       </a>
       <div className="mx-auto w-[60%] sm:w-full">
         <div className="xl:grid xl:gap-8 relative w-full">
-          <div className="grid grid-cols-1 ml-3 sm:ml-20 md:ml-4 md:grid-cols-2 gap-4 xl:col-span-2  max-w-[500px] mx-auto lg:max-w-[2000px] lg:flex lg:justify-center lg:w-full">
+          <div className="w-full grid grid-cols-1 ml-3 sm:ml-20 md:ml-4 md:grid-cols-2 gap-4 xl:col-span-2  max-w-[500px] mx-auto lg:max-w-[100vw] lg:flex lg:justify-center lg:w-full">
             <div className="md:grid xl:grid-cols-2 md:gap-4 mb-6 md:mb-0 lg:mr-4">
               <div className="lg:mr-12">
                 <h3 className="text-sm/6 lg:text-xl font-semibold font-['Mont'] text-white uppercase">Hướng dẫn</h3>
