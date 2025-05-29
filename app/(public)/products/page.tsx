@@ -1,345 +1,517 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
-import { debounce } from 'lodash';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getProducts, ProductWithStock, FilterOptions } from '@/lib/data';
-import { createClient } from '@/utils/supabase/client';
 import { Checkbox } from '@/components/ui/checkbox';
-import { cn } from '@/lib/utils';
 
-const PRODUCTS_PER_PAGE = 9;
+// Hàm debounce tùy chỉnh
+const debounce = (func: (...args: any[]) => void, wait: number) => {
+  let timeout: NodeJS.Timeout;
+  return (...args: any[]) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+};
 
-interface MultiSelectProps {
-  label: string;
-  options: string[];
-  selected: string[];
-  onChange: (selected: string[]) => void;
-}
-
-function MultiSelect({ label, options, selected, onChange }: MultiSelectProps) {
-  return (
-    <div>
-      <label className="block text-sm font-medium mb-1">{label}</label>
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="outline" className="w-full justify-between">
-            {selected.length > 0 ? `${selected.length} selected` : `Select ${label.toLowerCase()}`}
-            <span>▼</span>
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-64">
-          <div className="space-y-2 max-h-64 overflow-y-auto">
-            {options.map((option) => (
-              <div key={option} className="flex items-center space-x-2">
-                <Checkbox
-                  id={option}
-                  checked={selected.includes(option)}
-                  onCheckedChange={(checked) => {
-                    if (checked) {
-                      onChange([...selected, option]);
-                    } else {
-                      onChange(selected.filter((item) => item !== option));
-                    }
-                  }}
-                />
-                <label htmlFor={option} className="text-sm">
-                  {option}
-                </label>
-              </div>
-            ))}
-          </div>
-          {selected.length > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-2 w-full"
-              onClick={() => onChange([])}
-            >
-              Clear
-            </Button>
-          )}
-        </PopoverContent>
-      </Popover>
-    </div>
-  );
-}
-
-export default function ProductListPage() {
+export default function ProductsPage() {
   const [products, setProducts] = useState<ProductWithStock[]>([]);
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     product_types: [],
     vendors: [],
     colors: [],
     sizes: [],
+    smart_collections: [],
   });
-  const [filters, setFilters] = useState<{
-    product_type?: string[];
-    vendor?: string[];
-    color?: string[];
-    size?: string[];
-    search?: string;
-    sort?: 'price-asc' | 'price-desc' | 'name-asc' | 'name-desc';
-  }>({});
-  const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [filters, setFilters] = useState({
+    hot: false,
+    inStock: false,
+    sort: 'newest',
+    selectedVendors: [] as string[],
+    selectedColors: [] as string[],
+    selectedSizes: [] as string[],
+    selectedProductTypes: [] as string[],
+    selectedSmartCollection: '' as string,
+    search: '',
+    limit: 20,
+    offset: 0,
+  });
 
-  // Fetch products and filter options
-  useEffect(() => {
-    async function fetchProducts() {
-      setLoading(true);
-      
-      const { products: fetchedProducts, filterOptions: fetchedOptions, total: fetchedTotal } = await getProducts({
-        ...filters,
-        limit: PRODUCTS_PER_PAGE,
-        offset: page * PRODUCTS_PER_PAGE,
+  const fetchProducts = async () => {
+    setLoading(true);
+    try {
+      const { products, filterOptions, total } = await getProducts({
+        product_type: filters.selectedProductTypes.length > 0 ? filters.selectedProductTypes : undefined,
+        vendor: filters.selectedVendors.length > 0 ? filters.selectedVendors : undefined,
+        color: filters.selectedColors.length > 0 ? filters.selectedColors : undefined,
+        size: filters.selectedSizes.length > 0 ? filters.selectedSizes : undefined,
+        search: filters.search || undefined,
+        sort: filters.sort === 'price_high' ? 'price-desc' :
+          filters.sort === 'price_low' ? 'price-asc' :
+            filters.sort === 'newest' ? 'name-desc' : undefined,
+        smart_collection_handle: filters.selectedSmartCollection || undefined,
+        limit: filters.limit,
+        offset: filters.offset,
       });
 
-      console.log('fetchedProducts', { fetchedProducts, fetchedOptions, fetchedTotal})
+      let filteredProducts = products;
+      if (filters.hot) {
+        filteredProducts = filteredProducts.filter((p) => p.tags?.toLowerCase().includes('hot'));
+      }
+      if (filters.inStock) {
+        filteredProducts = filteredProducts.filter((p) => p.available_stock > 0);
+      }
 
-      setProducts(fetchedProducts);
-      setFilterOptions(fetchedOptions);
-      setTotal(fetchedTotal);
+      setProducts((prev) => (filters.offset === 0 ? filteredProducts : [...prev, ...filteredProducts]));
+      setFilterOptions(filterOptions);
+      setTotal(total);
+    } catch (err) {
+      setError('Không thể tải sản phẩm.');
+      console.error(err);
+    } finally {
       setLoading(false);
     }
-    fetchProducts();
-  }, [filters, page]);
-
-  // Real-time subscription for variant stock updates
-  useEffect(() => {
-    const supabase = createClient();
-    const channel = supabase
-      .channel('product_variants')
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'product_variants' },
-        async () => {
-          // Refetch products to update stock
-          const { products: updatedProducts, total: updatedTotal } = await getProducts({
-            ...filters,
-            limit: PRODUCTS_PER_PAGE,
-            offset: page * PRODUCTS_PER_PAGE,
-          });
-          setProducts(updatedProducts);
-          setTotal(updatedTotal);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [filters, page]);
-
-  // Debounced filter change handler
-  const debouncedFilterChange = useMemo(
-    () =>
-      debounce((key: keyof typeof filters, value: string[] | string) => {
-        setFilters((prev) => ({
-          ...prev,
-          [key]: value.length === 0 ? undefined : value,
-        }));
-        setPage(0); // Reset to first page on filter change
-      }, 300),
-    []
-  );
-
-  // Debounced search handler
-  const debouncedSearchChange = useMemo(
-    () =>
-      debounce((value: string) => {
-        setFilters((prev) => ({
-          ...prev,
-          search: value || undefined,
-        }));
-        setPage(0);
-      }, 300),
-    []
-  );
-
-  // Reset filters
-  const resetFilters = () => {
-    setFilters({});
-    setPage(0);
   };
 
-  // Pagination controls
-  const totalPages = Math.ceil(total / PRODUCTS_PER_PAGE);
-  const handlePrevPage = () => setPage((prev) => Math.max(prev - 1, 0));
-  const handleNextPage = () => setPage((prev) => Math.min(prev + 1, totalPages - 1));
+  const debouncedSearch = useCallback(
+    debounce((searchValue: string) => {
+      setFilters((prev) => ({
+        ...prev,
+        search: searchValue,
+        offset: 0,
+      }));
+    }, 300),
+    []
+  );
 
-  if (loading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {Array(PRODUCTS_PER_PAGE).fill(0).map((_, i) => (
-            <Skeleton key={i} className="h-64 w-full" />
-          ))}
-        </div>
-      </div>
-    );
-  }
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    debouncedSearch(e.target.value);
+  };
 
-  if (error) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Error</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-red-500">{error}</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  useEffect(() => {
+    fetchProducts();
+  }, [filters]);
+
+  const handleFilterChange = (key: string, value: any) => {
+    setFilters((prev) => ({
+      ...prev,
+      [key]: value,
+      offset: 0,
+      ...(key === 'selectedSmartCollection' ? { selectedProductTypes: [] } : {}), // Reset product types khi chọn collection
+    }));
+  };
+
+  const handleLoadMore = () => {
+    setFilters((prev) => ({
+      ...prev,
+      offset: prev.offset + prev.limit,
+    }));
+  };
+
+  if (error) return <p className="text-red-500 text-center p-4">{error}</p>;
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Products ({total} items)</h1>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {/* Filter Panel */}
-        <div className="col-span-1">
-          <Card>
-            <CardHeader>
-              <CardTitle>Filters</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Search</label>
-                <Input
-                  placeholder="Search products..."
-                  onChange={(e) => debouncedSearchChange(e.target.value)}
+    <div className="p-4">
+
+      {/* Div cuộn ngang cho Smart Collections */}
+      <div className='min-h-[120px] md:ml-[25%] xl:ml-[20%] flex flex-col item-start justify-start '>
+        <div className='w-full relative flex justify-between items-center'>
+          <div className="overflow-x-auto flex gap-2 sm:gap-12  no-scrollbar mb-2 relative pr-[60px] sm:pr-[100px] mr-[50px] sm:mr-[70px]">
+            <button
+              className={`pl-0 sm:pl-4  px-4 py-2 text-xl whitespace-nowrap transition font-['Mont'] !outline-0 uppercase ${filters.selectedSmartCollection === ''
+                ? "font-['Mont-semibold']"
+                : 'font-[400] scale-95'
+                }`}
+              onClick={() => handleFilterChange('selectedSmartCollection', '')}
+            >
+              Xem tất cả
+            </button>
+            {filterOptions.smart_collections.map((collection) => (
+              <button
+                key={collection.handle}
+                className={`pl-0 sm:pl-4 px-4 py-2 text-xl whitespace-nowrap transition font-['Mont'] !outline-0 uppercase ${filters.selectedSmartCollection === collection.handle
+                  ? "font-['Mont-semibold']"
+                  : 'font-[400] scale-95'
+                  }`}
+                onClick={() => handleFilterChange('selectedSmartCollection', collection.handle)}
+              >
+                {collection.title}
+              </button>
+            ))}
+
+          </div>
+
+          <div className='absolute right-0 top-0 z-10'>
+            <img
+              src={'/assets/icons/right-arrow-cate.svg'}
+              alt='DiepLeHouse'
+              className='w-[36px] h-[36px] sm:h-[40px] sm:w-[40px]'
+            />
+          </div>
+        </div>
+
+        {/* Div cuộn ngang cho Product Types (chỉ hiển thị nếu không chọn "Xem tất cả") */}
+        {filters.selectedSmartCollection && (
+          <div className='w-full relative flex justify-between items-center'>
+            <div className="mb-4 overflow-x-auto flex gap-2 no-scrollbar pr-[60px] sm:pr-[100px] mr-[50px] sm:mr-[70px] relative">
+              {filterOptions.product_types.map((type) => (
+                <button
+                  key={type}
+                  className={`pl-0 sm:pl-4  px-4 py-2 text-base whitespace-nowrap border-0 transition !outline-0 font-['Mont'] uppercase ${filters.selectedProductTypes.includes(type)
+                    ? "font-['Mont-semibold']"
+                    : "font-[500] scale-99"
+                    }`}
+                  onClick={() => {
+                    const newTypes = filters.selectedProductTypes.includes(type)
+                      ? filters.selectedProductTypes.filter((t) => t !== type)
+                      : [...filters.selectedProductTypes, type];
+                    handleFilterChange('selectedProductTypes', newTypes);
+                  }}
+                >
+                  {type.replace(/^.*_/, '')}
+                </button>
+              ))}
+            </div>
+            <div className='absolute right-0 top-0 z-10'>
+              <img
+                src={'/assets/icons/right-arrow-cate.svg'}
+                alt='DiepLeHouse'
+                className='w-[36px] h-[36px] sm:h-[40px] sm:w-[40px]'
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+
+      <div className="flex flex-col md:flex-row gap-6">
+        {/* Bộ lọc - Desktop */}
+        <div className="hidden md:block w-full md:w-1/4 xl:w-1/5">
+          <div className="bg-white p-4">
+            <div className='bg-[#F0EEE1] flex mb-4 justify-between items-center px-3 py-1 w-[80%] max-w-[150px]'>
+              <span className="text-lg font-['Mont'] self-start text-start flex uppercase">Lọc Theo</span>
+
+              <img
+                src={'/assets/icons/arrow-down-icon.svg'}
+                alt='DiepLeHouse'
+                className='w-[14px] h-[14px] sm:h-[14px] sm:w-[14px]'
+              />
+            </div>
+
+
+
+            <div className='bg-[#F0EEE1] flex flex-col justify-start items-start px-3 py-6 pb-3 mb-6'>
+              {/* Tìm kiếm */}
+              <div className="mb-4 w-full">
+                <input
+                  type="text"
+                  placeholder="Tìm kiếm sản phẩm..."
+                  defaultValue=""
+                  onChange={handleSearchChange}
+                  className="w-full p-2 border placeholder:text-gray-500 placeholder:font-['Mont']"
                 />
               </div>
-              <MultiSelect
-                label="Product Type"
-                options={filterOptions.product_types}
-                selected={filters.product_type || []}
-                onChange={(values) => debouncedFilterChange('product_type', values)}
-              />
-              <MultiSelect
-                label="Vendor"
-                options={filterOptions.vendors}
-                selected={filters.vendor || []}
-                onChange={(values) => debouncedFilterChange('vendor', values)}
-              />
-              <MultiSelect
-                label="Color"
-                options={filterOptions.colors}
-                selected={filters.color || []}
-                onChange={(values) => debouncedFilterChange('color', values)}
-              />
-              <MultiSelect
-                label="Size"
-                options={filterOptions.sizes}
-                selected={filters.size || []}
-                onChange={(values) => debouncedFilterChange('size', values)}
-              />
-              <div>
-                <label className="block text-sm font-medium mb-1">Sort By</label>
-                <Select
-                  value={filters.sort || 'all'}
-                  onValueChange={(value) =>
-                    debouncedFilterChange('sort', value === 'all' ? '' : value)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sort by" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Default</SelectItem>
-                    <SelectItem value="price-asc">Price: Low to High</SelectItem>
-                    <SelectItem value="price-desc">Price: High to Low</SelectItem>
-                    <SelectItem value="name-asc">Name: A-Z</SelectItem>
-                    <SelectItem value="name-desc">Name: Z-A</SelectItem>
-                  </SelectContent>
-                </Select>
+              {/* Deal Hot */}
+              <div className="mb-3 mt-1">
+                {/* <label className="flex items-center font-['Mont']">
+                  <input
+                    type="checkbox"
+                    checked={filters.hot}
+                    onChange={(e) => handleFilterChange('hot', e.target.checked)}
+                    className="px-4 mr-2 py-2 text-base border-1 bg-[#D9D9D9] border-[#D9D9D9] rounded-sm data-[state=checked]:bg-[#D9D9D9] data-[state=checked]:border-[#D9D9D9]"
+                  />
+                  Deal Hot
+                </label> */}
+                <label className="custom-checkbox font-['Mont']">
+                  <input
+                    type="checkbox"
+                    checked={filters.hot}
+                    onChange={(e) => handleFilterChange('hot', e.target.checked)}
+                  />
+                  <span className="checkmark"></span>
+                  Deal Hot
+                </label>
               </div>
-              <Button variant="outline" onClick={resetFilters}>
-                Reset Filters
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-        {/* Product Grid */}
-        <div className="col-span-1 md:col-span-3">
-          {products.length === 0 ? (
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-gray-500">No products found matching your filters.</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                {products.map((product) => (
-                  <Card key={product.id}>
-                    <CardContent className="pt-6">
-                      {product.images[0] ? (
-                        <img
-                          src={product.images[0]}
-                          alt={product.title}
-                          className="w-full h-32 object-cover rounded-md mb-4"
-                        />
-                      ) : (
-                        <div className="w-full h-32 bg-gray-200 rounded-md flex items-center justify-center mb-4">
-                          No Image
-                        </div>
-                      )}
-                      <h2 className="text-lg font-semibold">{product.title}</h2>
-                      <p className="text-sm text-gray-500">{product.vendor}</p>
-                      <p className="text-sm font-medium mt-2">
-                        From {(product.min_price / 1000).toFixed(3)} VND
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        Available Stock: {product.available_stock}
-                      </p>
-                      <Link href={`/products/${product.id}`}>
-                        <Button className="mt-4 w-full">View Details</Button>
-                      </Link>
-                    </CardContent>
-                  </Card>
+
+              {/* Còn hàng */}
+              <div className="mb-0">
+                {/* <label className="flex items-center font-['Mont']">
+                  <input
+                    type="checkbox"
+                    checked={filters.inStock}
+                    onChange={(e) => handleFilterChange('inStock', e.target.checked)}
+                    className="mr-2"
+                  />
+                  Sản Phẩm Còn hàng
+                </label> */}
+                <label className="custom-checkbox font-['Mont']">
+                  <input
+                    type="checkbox"
+                    checked={filters.inStock}
+                    onChange={(e) => handleFilterChange('inStock', e.target.checked)}
+                  />
+                  <span className="checkmark"></span>
+                  Sản Phẩm Còn hàng
+                </label>
+              </div>
+            </div>
+
+
+            {/* Sắp xếp */}
+            <div className="mb-4">
+              <div className='bg-[#F0EEE1] flex mb-4 self-start justify-between items-center px-3 py-1 w-[80%] max-w-[150px]'>
+                <span className="text-lg font-['Mont'] self-start text-start flex uppercase">Sắp xếp</span>
+                <img
+                  src={'/assets/icons/arrow-down-icon.svg'}
+                  alt='DiepLeHouse'
+                  className='w-[14px] h-[14px] sm:h-[14px] sm:w-[14px]'
+                />
+              </div>
+              <div className='flex flex-col'>
+                {[
+                  { value: 'newest', label: ' Sản Phẩm Mới Nhất' },
+                  { value: 'price_high', label: 'Giá (Cao Đến Thấp)' },
+                  { value: 'price_low', label: 'Giá (Thấp Đến Cao)' },
+                ].map((option) => (
+                  <label key={option.value} className="custom-checkbox flex items-center mb-3 font-['Mont']">
+                    <input
+                      type="radio"
+                      name="sort"
+                      value={option.value}
+                      checked={filters.sort === option.value}
+                      onChange={(e) => handleFilterChange('sort', e.target.value)}
+                      className="mr-2"
+                    />
+                    <span className="checkmark"></span>
+
+                    {option.label}
+                  </label>
                 ))}
               </div>
-              {/* Pagination Controls */}
-              <div className="flex justify-between items-center mt-6">
-                <Button
-                  onClick={handlePrevPage}
-                  disabled={page === 0}
-                  variant="outline"
-                >
-                  Previous
-                </Button>
-                <span>
-                  Page {page + 1} of {totalPages}
-                </span>
-                <Button
-                  onClick={handleNextPage}
-                  disabled={page >= totalPages - 1}
-                  variant="outline"
-                >
-                  Next
-                </Button>
+
+            </div>
+
+            {/* Thương hiệu */}
+            <div className="mb-4">
+              <div className='bg-[#F0EEE1] flex mb-4 self-start justify-between items-center px-3 py-1 w-[80%] max-w-[150px]'>
+                <span className="text-lg font-['Mont'] self-start text-start flex uppercase">BRAND</span>
+                <img
+                  src={'/assets/icons/arrow-down-icon.svg'}
+                  alt='DiepLeHouse'
+                  className='w-[14px] h-[14px] sm:h-[14px] sm:w-[14px]'
+                />
               </div>
-            </>
+
+              <div className='flex flex-col'>
+                {filterOptions.vendors.map((vendor) => (
+                  <label key={vendor} className="custom-checkbox mb-3 font-['Mont'] uppercase">
+                    <input
+                      type="checkbox"
+                      checked={filters.selectedVendors.includes(vendor)}
+                      onChange={(e) => {
+                        const newVendors = e.target.checked
+                          ? [...filters.selectedVendors, vendor]
+                          : filters.selectedVendors.filter((v) => v !== vendor);
+                        handleFilterChange('selectedVendors', newVendors);
+                      }}
+                    />
+                    <span className="checkmark"></span>
+                    {vendor}
+                  </label>
+                ))}
+              </div>
+
+            </div>
+
+            {/* Màu sắc */}
+            {/* <div className="mb-4">
+              <h3 className="font-medium mb-2">Màu sắc</h3>
+              {filterOptions.colors.map((color) => (
+                <label key={color} className="flex items-center mb-1">
+                  <input
+                    type="checkbox"
+                    checked={filters.selectedColors.includes(color)}
+                    onChange={(e) => {
+                      const newColors = e.target.checked
+                        ? [...filters.selectedColors, color]
+                        : filters.selectedColors.filter((c) => c !== color);
+                      handleFilterChange('selectedColors', newColors);
+                    }}
+                    className="mr-2"
+                  />
+                  {color}
+                </label>
+              ))}
+            </div> */}
+
+            {/* Kích thước */}
+            {/* <div className="mb-4">
+              <h3 className="font-medium mb-2">Kích thước</h3>
+              {filterOptions.sizes.map((size) => (
+                <label key={size} className="flex items-center mb-1">
+                  <input
+                    type="checkbox"
+                    checked={filters.selectedSizes.includes(size)}
+                    onChange={(e) => {
+                      const newSizes = e.target.checked
+                        ? [...filters.selectedSizes, size]
+                        : filters.selectedSizes.filter((s) => s !== size);
+                      handleFilterChange('selectedSizes', newSizes);
+                    }}
+                    className="mr-2"
+                  />
+                  {size}
+                </label>
+              ))}
+            </div> */}
+          </div>
+        </div>
+
+        {/* Bộ lọc - Mobile */}
+        <div className="md:hidden flex gap-2 mb-4">
+          <button
+            className="bg-gray-200 px-4 py-2 rounded"
+            onClick={() => alert('Popup Lọc theo')} // Gắn popup sau
+          >
+            Lọc theo
+          </button>
+          <button
+            className="bg-gray-200 px-4 py-2 rounded"
+            onClick={() => alert('Popup Bộ lọc')} // Gắn popup sau
+          >
+            Bộ lọc
+          </button>
+        </div>
+
+        {/* Danh sách sản phẩm */}
+        <div className="w-full md:w-3/4">
+          {loading && products.length === 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {[...Array(8)].map((_, index) => (
+                <div key={index} className="bg-white p-2 rounded-lg shadow">
+                  <div className="relative w-full" style={{ paddingBottom: '133.33%' }}>
+                    <Skeleton className="h-full w-full rounded" />
+                  </div>
+                  <Skeleton className="mt-2 h-5 w-4/5" />
+                  <Skeleton className="h-4 w-3/5" />
+                </div>
+              ))}
+            </div>
+          ) : products.length === 0 ? (
+            <p className="text-gray-500">Không có sản phẩm nào phù hợp.</p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {products.map((product) => (
+                <Link href={`/products/${product.id}`} key={product.id}>
+                  <div className="bg-white hover:cursor-pointer transition">
+                    <div className="relative w-full" style={{ paddingBottom: '133.33%' /* 392/294 */ }}>
+                      {product.images?.[0] ? (
+                        <Image
+                          src={product.images[0]}
+                          alt={product.title}
+                          fill
+                          className="object-cover rounded"
+                          sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 bg-[#D9D9D9] flex items-center justify-center">
+                          <span className="text-gray-500">No Image</span>
+                        </div>
+                      )}
+                    </div>
+                    <h3 className="text-lg text-center font-medium mt-2 line-clamp-2 font-['Mont-semibold'] h-[56px]">{product.title}</h3>
+                    <p className="text-gray-600 text-center text-lg font-['Mont']">
+                      {product.min_price.toLocaleString('vi-VN')}₫
+                    </p>
+                  </div>
+                </Link>
+              ))}
+              {loading && products.length > 0 && (
+                <>
+                  {[...Array(4)].map((_, index) => (
+                    <div key={`skeleton-${index}`} className="bg-white p-2 rounded-lg shadow">
+                      <div className="relative w-full" style={{ paddingBottom: '133.33%' }}>
+                        <Skeleton className="h-full w-full rounded" />
+                      </div>
+                      <Skeleton className="mt-2 h-5 w-4/5" />
+                      <Skeleton className="h-4 w-3/5" />
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+          )}
+          {products.length < total && !loading && (
+            <div className="text-center mt-6">
+              <button
+                onClick={handleLoadMore}
+                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+              >
+                Tải thêm
+              </button>
+            </div>
           )}
         </div>
       </div>
+
+      <style jsx>{`
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .custom-checkbox {
+          display: inline-flex;
+          align-items: center;
+          cursor: pointer;
+          user-select: none;
+          font-size: 16px;
+        }
+
+        .custom-checkbox input {
+          display: none;
+        }
+
+        .custom-checkbox .checkmark {
+          width: 20px;
+          height: 20px;
+          border: 0px solid #999;
+          border-radius: 0px;
+          background-color: #D9D9D9;
+          margin-right: 8px;
+          position: relative;
+          transition: all 0.2s;
+        }
+
+        .custom-checkbox input:checked + .checkmark {
+          background-color: #D9D9D9;
+          border-color: #D9D9D9;
+        }
+
+        .custom-checkbox .checkmark::after {
+          content: "";
+          position: absolute;
+          display: none;
+          left: 7px;
+          top: 3px;
+          width: 6px;
+          height: 10px;
+          border: solid black;
+          border-width: 0 2px 2px 0;
+          transform: rotate(45deg);
+        }
+
+        .custom-checkbox input:checked + .checkmark::after {
+          display: block;
+        }
+      `}</style>
     </div>
   );
 }
