@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getProducts, ProductWithStock, FilterOptions } from '@/lib/data';
-import { Checkbox } from '@/components/ui/checkbox';
 
 // Hàm debounce tùy chỉnh
 const debounce = (func: (...args: any[]) => void, wait: number) => {
