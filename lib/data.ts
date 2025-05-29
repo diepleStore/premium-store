@@ -502,18 +502,35 @@ export async function getProducts(filters: {
   search?: string;
   sort?: 'price-asc' | 'price-desc' | 'name-asc' | 'name-desc';
   smart_collection_handle?: string;
+  tag?: string; // Thêm tag để lọc theo body_html
   limit?: number;
   offset?: number;
 }): Promise<{ products: ProductWithStock[]; filterOptions: FilterOptions; total: number }> {
   const supabase = createClient();
 
-  // Lấy product types theo smart_collection_handle
+  // Lấy smart collections theo tag (body_html)
+  let smartCollectionHandles: string[] = [];
+  if (filters.tag) {
+    const { data: smartCollections } = await supabase
+      .from('smart_collection')
+      .select('handle')
+      .eq('body_html', filters.tag);
+    smartCollectionHandles = smartCollections?.map((sc) => sc.handle) || [];
+  }
+
+  // Lấy product types theo smart_collection_handle hoặc tag
   let productTypes: string[] = [];
   if (filters.smart_collection_handle) {
     const { data: productTypeData } = await supabase
       .from('product_types')
       .select('name')
       .eq('smart_collection_handle', filters.smart_collection_handle);
+    productTypes = productTypeData?.map((pt) => pt.name) || [];
+  } else if (filters.tag && smartCollectionHandles.length > 0) {
+    const { data: productTypeData } = await supabase
+      .from('product_types')
+      .select('name')
+      .in('smart_collection_handle', smartCollectionHandles);
     productTypes = productTypeData?.map((pt) => pt.name) || [];
   }
 
@@ -538,7 +555,11 @@ export async function getProducts(filters: {
     `);
 
   // Apply filters
-  if (filters.smart_collection_handle && productTypes.length > 0) {
+  if (filters.tag && smartCollectionHandles.length > 0 && !filters.smart_collection_handle) {
+    // Nếu có tag và không chọn smart collection cụ thể, lấy sản phẩm từ tất cả smart collections
+    productQuery = productQuery.in('product_type', productTypes);
+    countQuery = countQuery.in('product_type', productTypes);
+  } else if (filters.smart_collection_handle && productTypes.length > 0) {
     productQuery = productQuery.in('product_type', productTypes);
     countQuery = countQuery.in('product_type', productTypes);
   }
@@ -623,21 +644,29 @@ export async function getProducts(filters: {
 
   // Get filter options
   const { data: allProductsData } = await supabase.from('products').select('product_type, vendor, colors, sizes');
-  const { data: smartCollections } = await supabase.from('smart_collection').select('handle, title');
+  let smartCollectionsQuery = supabase.from('smart_collection').select('handle, title, body_html');
+  if (filters.tag) {
+    smartCollectionsQuery = smartCollectionsQuery.eq('body_html', filters.tag);
+  }
+  const { data: smartCollections } = await smartCollectionsQuery;
 
-  // Lọc product types theo smart_collection_handle
+  // Lọc product types theo smart_collection_handle hoặc tag
   let filteredProductTypes = allProductsData?.map((p) => p.product_type).filter(Boolean) || [];
   if (filters.smart_collection_handle) {
+    filteredProductTypes = filteredProductTypes.filter((pt) =>
+      productTypes.includes(pt)
+    );
+  } else if (filters.tag) {
     filteredProductTypes = filteredProductTypes.filter((pt) =>
       productTypes.includes(pt)
     );
   }
 
   const filterOptions: FilterOptions = {
-    product_types: Array.from(new Set(filteredProductTypes)) as string[],
-    vendors: Array.from(new Set(allProductsData?.map((p) => p.vendor).filter(Boolean))) as string[],
-    colors: Array.from(new Set(allProductsData?.flatMap((p) => p.colors || []))) as string[],
-    sizes: Array.from(new Set(allProductsData?.flatMap((p) => p.sizes || []))) as string[],
+    product_types: [...new Set(filteredProductTypes)] as string[],
+    vendors: [...new Set(allProductsData?.map((p) => p.vendor).filter(Boolean))] as string[],
+    colors: [...new Set(allProductsData?.flatMap((p) => p.colors || []))] as string[],
+    sizes: [...new Set(allProductsData?.flatMap((p) => p.sizes || []))] as string[],
     smart_collections: smartCollections?.map((sc) => ({ handle: sc.handle, title: sc.title })) || [],
   };
 
