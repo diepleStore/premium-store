@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getProducts, ProductWithStock, FilterOptions } from '@/lib/data';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -17,6 +18,8 @@ const debounce = (func: (...args: any[]) => void, wait: number) => {
 };
 
 export default function ProductsPage() {
+  const searchParams = useSearchParams();
+  const tag = searchParams.get('tag') || 'my-pham'; // Lấy tag từ URL, mặc định là 'my-pham'
   const [products, setProducts] = useState<ProductWithStock[]>([]);
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     product_types: [],
@@ -55,6 +58,7 @@ export default function ProductsPage() {
           filters.sort === 'price_low' ? 'price-asc' :
             filters.sort === 'newest' ? 'name-desc' : undefined,
         smart_collection_handle: filters.selectedSmartCollection || undefined,
+        tag: tag || undefined, // Truyền tag vào getProducts
         limit: filters.limit,
         offset: filters.offset,
       });
@@ -95,7 +99,7 @@ export default function ProductsPage() {
 
   useEffect(() => {
     fetchProducts();
-  }, [filters]);
+  }, [filters, tag]); // Thêm tag vào dependencies
 
   const handleFilterChange = (key: string, value: any) => {
     setFilters((prev) => ({
@@ -117,15 +121,14 @@ export default function ProductsPage() {
 
   return (
     <div className="p-4">
-
       {/* Div cuộn ngang cho Smart Collections */}
       <div className='min-h-[120px] md:ml-[25%] xl:ml-[20%] flex flex-col item-start justify-start '>
         <div className='w-full relative flex justify-between items-center'>
-          <div className="overflow-x-auto flex gap-2 sm:gap-12  no-scrollbar mb-2 relative pr-[60px] sm:pr-[100px] mr-[50px] sm:mr-[70px]">
+          <div className="overflow-x-auto flex gap-2 sm:gap-12 no-scrollbar mb-2 relative pr-[60px] sm:pr-[100px] mr-[50px] sm:mr-[70px]">
             <button
-              className={`pl-0 sm:pl-4  px-4 py-2 text-xl whitespace-nowrap transition font-['Mont'] !outline-0 uppercase ${filters.selectedSmartCollection === ''
-                ? "font-['Mont-semibold']"
-                : 'font-[400] scale-95'
+              className={`hover:cursor-pointer pl-0 sm:pl-0 px-4 py-2 text-xl whitespace-nowrap transition font-['Mont'] !outline-0 uppercase ${filters.selectedSmartCollection === ''
+                  ? "font-['Mont-semibold']"
+                  : 'font-[400] scale-95'
                 }`}
               onClick={() => handleFilterChange('selectedSmartCollection', '')}
             >
@@ -134,18 +137,16 @@ export default function ProductsPage() {
             {filterOptions.smart_collections.map((collection) => (
               <button
                 key={collection.handle}
-                className={`pl-0 sm:pl-4 px-4 py-2 text-xl whitespace-nowrap transition font-['Mont'] !outline-0 uppercase ${filters.selectedSmartCollection === collection.handle
-                  ? "font-['Mont-semibold']"
-                  : 'font-[400] scale-95'
+                className={`hover:cursor-pointer pl-0 sm:pl-4 px-4 py-2 text-xl whitespace-nowrap transition font-['Mont'] !outline-0 uppercase ${filters.selectedSmartCollection === collection.handle
+                    ? "font-['Mont-semibold']"
+                    : 'font-[400] scale-95'
                   }`}
                 onClick={() => handleFilterChange('selectedSmartCollection', collection.handle)}
               >
                 {collection.title}
               </button>
             ))}
-
           </div>
-
           <div className='absolute right-0 top-0 z-10'>
             <img
               src={'/assets/icons/right-arrow-cate.svg'}
@@ -159,13 +160,13 @@ export default function ProductsPage() {
         {filters.selectedSmartCollection && (
           <div className='w-full relative flex justify-between items-center'>
             <div className="mb-4 overflow-x-auto flex gap-2 no-scrollbar pr-[60px] sm:pr-[100px] mr-[50px] sm:mr-[70px] relative">
-              {filterOptions.product_types.map((type) => (
+              {filterOptions.product_types.map((type, typeIndex) => (
                 <button
                   key={type}
-                  className={`pl-0 sm:pl-4  px-4 py-2 text-base whitespace-nowrap border-0 transition !outline-0 font-['Mont'] uppercase ${filters.selectedProductTypes.includes(type)
-                    ? "font-['Mont-semibold']"
-                    : "font-[500] scale-99"
-                    }`}
+                  className={`hover:cursor-pointer pl-0 sm:pl-4 px-4 py-2 text-base whitespace-nowrap border-0 transition !outline-0 font-['Mont'] uppercase ${filters.selectedProductTypes.includes(type)
+                      ? "font-['Mont-semibold']"
+                      : "font-[500] scale-99"
+                    } ${typeIndex === 0 ? '!pl-1' : ''}`}
                   onClick={() => {
                     const newTypes = filters.selectedProductTypes.includes(type)
                       ? filters.selectedProductTypes.filter((t) => t !== type)
@@ -188,22 +189,18 @@ export default function ProductsPage() {
         )}
       </div>
 
-
-      <div className="flex flex-col md:flex-row gap-6">
+      <div className="flex flex-col md:flex-row gap-0">
         {/* Bộ lọc - Desktop */}
         <div className="hidden md:block w-full md:w-1/4 xl:w-1/5">
           <div className="bg-white p-4">
             <div className='bg-[#F0EEE1] flex mb-4 justify-between items-center px-3 py-1 w-[80%] max-w-[150px]'>
               <span className="text-lg font-['Mont'] self-start text-start flex uppercase">Lọc Theo</span>
-
               <img
                 src={'/assets/icons/arrow-down-icon.svg'}
                 alt='DiepLeHouse'
                 className='w-[14px] h-[14px] sm:h-[14px] sm:w-[14px]'
               />
             </div>
-
-
 
             <div className='bg-[#F0EEE1] flex flex-col justify-start items-start px-3 py-6 pb-3 mb-6'>
               {/* Tìm kiếm */}
@@ -218,15 +215,6 @@ export default function ProductsPage() {
               </div>
               {/* Deal Hot */}
               <div className="mb-3 mt-1">
-                {/* <label className="flex items-center font-['Mont']">
-                  <input
-                    type="checkbox"
-                    checked={filters.hot}
-                    onChange={(e) => handleFilterChange('hot', e.target.checked)}
-                    className="px-4 mr-2 py-2 text-base border-1 bg-[#D9D9D9] border-[#D9D9D9] rounded-sm data-[state=checked]:bg-[#D9D9D9] data-[state=checked]:border-[#D9D9D9]"
-                  />
-                  Deal Hot
-                </label> */}
                 <label className="custom-checkbox font-['Mont']">
                   <input
                     type="checkbox"
@@ -237,18 +225,8 @@ export default function ProductsPage() {
                   Deal Hot
                 </label>
               </div>
-
               {/* Còn hàng */}
               <div className="mb-0">
-                {/* <label className="flex items-center font-['Mont']">
-                  <input
-                    type="checkbox"
-                    checked={filters.inStock}
-                    onChange={(e) => handleFilterChange('inStock', e.target.checked)}
-                    className="mr-2"
-                  />
-                  Sản Phẩm Còn hàng
-                </label> */}
                 <label className="custom-checkbox font-['Mont']">
                   <input
                     type="checkbox"
@@ -260,7 +238,6 @@ export default function ProductsPage() {
                 </label>
               </div>
             </div>
-
 
             {/* Sắp xếp */}
             <div className="mb-4">
@@ -288,12 +265,10 @@ export default function ProductsPage() {
                       className="mr-2"
                     />
                     <span className="checkmark"></span>
-
                     {option.label}
                   </label>
                 ))}
               </div>
-
             </div>
 
             {/* Thương hiệu */}
@@ -306,7 +281,6 @@ export default function ProductsPage() {
                   className='w-[14px] h-[14px] sm:h-[14px] sm:w-[14px]'
                 />
               </div>
-
               <div className='flex flex-col'>
                 {filterOptions.vendors.map((vendor) => (
                   <label key={vendor} className="custom-checkbox mb-3 font-['Mont'] uppercase">
@@ -325,50 +299,7 @@ export default function ProductsPage() {
                   </label>
                 ))}
               </div>
-
             </div>
-
-            {/* Màu sắc */}
-            {/* <div className="mb-4">
-              <h3 className="font-medium mb-2">Màu sắc</h3>
-              {filterOptions.colors.map((color) => (
-                <label key={color} className="flex items-center mb-1">
-                  <input
-                    type="checkbox"
-                    checked={filters.selectedColors.includes(color)}
-                    onChange={(e) => {
-                      const newColors = e.target.checked
-                        ? [...filters.selectedColors, color]
-                        : filters.selectedColors.filter((c) => c !== color);
-                      handleFilterChange('selectedColors', newColors);
-                    }}
-                    className="mr-2"
-                  />
-                  {color}
-                </label>
-              ))}
-            </div> */}
-
-            {/* Kích thước */}
-            {/* <div className="mb-4">
-              <h3 className="font-medium mb-2">Kích thước</h3>
-              {filterOptions.sizes.map((size) => (
-                <label key={size} className="flex items-center mb-1">
-                  <input
-                    type="checkbox"
-                    checked={filters.selectedSizes.includes(size)}
-                    onChange={(e) => {
-                      const newSizes = e.target.checked
-                        ? [...filters.selectedSizes, size]
-                        : filters.selectedSizes.filter((s) => s !== size);
-                      handleFilterChange('selectedSizes', newSizes);
-                    }}
-                    className="mr-2"
-                  />
-                  {size}
-                </label>
-              ))}
-            </div> */}
           </div>
         </div>
 
@@ -450,9 +381,13 @@ export default function ProductsPage() {
             <div className="text-center mt-6">
               <button
                 onClick={handleLoadMore}
-                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                className="border-1 hover:cursor-pointer hover:opacity-80 hover:border-1 hover:border-[#D9D9D9]"
               >
-                Tải thêm
+                <img
+                  src={'/assets/icons/show-more-button.svg'}
+                  alt='DiepLeHouse'
+                  className='w-[100px] h-[auto] sm:h-[auto] sm:w-[140px]'
+                />
               </button>
             </div>
           )}
@@ -474,11 +409,9 @@ export default function ProductsPage() {
           user-select: none;
           font-size: 16px;
         }
-
         .custom-checkbox input {
           display: none;
         }
-
         .custom-checkbox .checkmark {
           width: 20px;
           height: 20px;
@@ -489,12 +422,10 @@ export default function ProductsPage() {
           position: relative;
           transition: all 0.2s;
         }
-
         .custom-checkbox input:checked + .checkmark {
           background-color: #D9D9D9;
           border-color: #D9D9D9;
         }
-
         .custom-checkbox .checkmark::after {
           content: "";
           position: absolute;
@@ -507,7 +438,6 @@ export default function ProductsPage() {
           border-width: 0 2px 2px 0;
           transform: rotate(45deg);
         }
-
         .custom-checkbox input:checked + .checkmark::after {
           display: block;
         }
