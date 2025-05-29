@@ -482,6 +482,8 @@ export async function cleanExpiredCartItems(supabase: SupabaseClient): Promise<b
 export interface ProductWithStock extends ProductDetail {
   available_stock: number;
   min_price: number;
+  handle?: string // Optional handle for product URL
+  tags?: string; // Optional tags for product filtering
 }
 
 export interface FilterOptions {
@@ -489,6 +491,7 @@ export interface FilterOptions {
   vendors: string[];
   colors: string[];
   sizes: string[];
+  smart_collections: any[]; // Array of objects with handle and title
 }
 
 export async function getProducts(filters: {
@@ -498,18 +501,47 @@ export async function getProducts(filters: {
   size?: string[];
   search?: string;
   sort?: 'price-asc' | 'price-desc' | 'name-asc' | 'name-desc';
+  smart_collection_handle?: string;
   limit?: number;
   offset?: number;
 }): Promise<{ products: ProductWithStock[]; filterOptions: FilterOptions; total: number }> {
   const supabase = createClient();
 
-  // Count total products for pagination
+  // Lấy product types theo smart_collection_handle
+  let productTypes: string[] = [];
+  if (filters.smart_collection_handle) {
+    const { data: productTypeData } = await supabase
+      .from('product_types')
+      .select('name')
+      .eq('smart_collection_handle', filters.smart_collection_handle);
+    productTypes = productTypeData?.map((pt) => pt.name) || [];
+  }
+
+  // Count total products
   let countQuery = supabase.from('products').select('*', { count: 'exact', head: true });
 
-  // Fetch products with pagination
-  let productQuery = supabase.from('products').select('*');
+  // Fetch products
+  let productQuery = supabase
+    .from('products')
+    .select(`
+      id,
+      title,
+      images,
+      product_type,
+      vendor,
+      colors,
+      sizes,
+      tags,
+      created_at,
+      updated_at,
+      published_at
+    `);
 
   // Apply filters
+  if (filters.smart_collection_handle && productTypes.length > 0) {
+    productQuery = productQuery.in('product_type', productTypes);
+    countQuery = countQuery.in('product_type', productTypes);
+  }
   if (filters.product_type && filters.product_type.length > 0) {
     productQuery = productQuery.in('product_type', filters.product_type);
     countQuery = countQuery.in('product_type', filters.product_type);
@@ -550,7 +582,7 @@ export async function getProducts(filters: {
 
   if (productsError || !productsData || countError || total === null) {
     console.error('Error fetching products:', productsError?.message || countError?.message);
-    return { products: [], filterOptions: { product_types: [], vendors: [], colors: [], sizes: [] }, total: 0 };
+    return { products: [], filterOptions: { product_types: [], vendors: [], colors: [], sizes: [], smart_collections: [] }, total: 0 };
   }
 
   // Fetch variants for stock and price
@@ -560,10 +592,10 @@ export async function getProducts(filters: {
 
   if (variantsError || !variantsData) {
     console.error('Error fetching variants:', variantsError?.message);
-    return { products: [], filterOptions: { product_types: [], vendors: [], colors: [], sizes: [] }, total: 0 };
+    return { products: [], filterOptions: { product_types: [], vendors: [], colors: [], sizes: [], smart_collections: [] }, total: 0 };
   }
 
-  // Calculate available stock and min price per product
+  // Calculate available stock and min price
   let productsWithStock: ProductWithStock[] = productsData.map((product) => {
     const variants = variantsData.filter((v) => v.product_id === product.id);
     const available_stock = variants.reduce(
@@ -582,20 +614,31 @@ export async function getProducts(filters: {
     };
   });
 
-  // Apply client-side sorting for price (since price is calculated from variants)
+  // Apply client-side sorting for price
   if (filters.sort === 'price-asc') {
     productsWithStock = productsWithStock.sort((a, b) => a.min_price - b.min_price);
   } else if (filters.sort === 'price-desc') {
     productsWithStock = productsWithStock.sort((a, b) => b.min_price - a.min_price);
   }
 
-  // Get unique filter options (from all products, not just current page)
+  // Get filter options
   const { data: allProductsData } = await supabase.from('products').select('product_type, vendor, colors, sizes');
+  const { data: smartCollections } = await supabase.from('smart_collection').select('handle, title');
+
+  // Lọc product types theo smart_collection_handle
+  let filteredProductTypes = allProductsData?.map((p) => p.product_type).filter(Boolean) || [];
+  if (filters.smart_collection_handle) {
+    filteredProductTypes = filteredProductTypes.filter((pt) =>
+      productTypes.includes(pt)
+    );
+  }
+
   const filterOptions: FilterOptions = {
-    product_types: [...new Set(allProductsData?.map((p) => p.product_type).filter(Boolean))] as string[],
-    vendors: [...new Set(allProductsData?.map((p) => p.vendor).filter(Boolean))] as string[],
-    colors: [...new Set(allProductsData?.flatMap((p) => p.colors || []))] as string[],
-    sizes: [...new Set(allProductsData?.flatMap((p) => p.sizes || []))] as string[],
+    product_types: Array.from(new Set(filteredProductTypes)) as string[],
+    vendors: Array.from(new Set(allProductsData?.map((p) => p.vendor).filter(Boolean))) as string[],
+    colors: Array.from(new Set(allProductsData?.flatMap((p) => p.colors || []))) as string[],
+    sizes: Array.from(new Set(allProductsData?.flatMap((p) => p.sizes || []))) as string[],
+    smart_collections: smartCollections?.map((sc) => ({ handle: sc.handle, title: sc.title })) || [],
   };
 
   return { products: productsWithStock, filterOptions, total };
