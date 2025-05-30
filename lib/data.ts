@@ -502,7 +502,7 @@ export async function getProducts(filters: {
   search?: string;
   sort?: 'price-asc' | 'price-desc' | 'name-asc' | 'name-desc';
   smart_collection_handle?: string;
-  tag?: string; // Thêm tag để lọc theo body_html
+  tag?: string;
   limit?: number;
   offset?: number;
 }): Promise<{ products: ProductWithStock[]; filterOptions: FilterOptions; total: number }> {
@@ -556,7 +556,6 @@ export async function getProducts(filters: {
 
   // Apply filters
   if (filters.tag && smartCollectionHandles.length > 0 && !filters.smart_collection_handle) {
-    // Nếu có tag và không chọn smart collection cụ thể, lấy sản phẩm từ tất cả smart collections
     productQuery = productQuery.in('product_type', productTypes);
     countQuery = countQuery.in('product_type', productTypes);
   } else if (filters.smart_collection_handle && productTypes.length > 0) {
@@ -643,7 +642,8 @@ export async function getProducts(filters: {
   }
 
   // Get filter options
-  const { data: allProductsData } = await supabase.from('products').select('product_type, vendor, colors, sizes');
+  const { data: allProductsData } = await supabase.from('products').select('product_type, colors, sizes');
+  const { data: brandsData } = await supabase.from('brands').select('name');
   let smartCollectionsQuery = supabase.from('smart_collection').select('handle, title, body_html');
   if (filters.tag) {
     smartCollectionsQuery = smartCollectionsQuery.eq('body_html', filters.tag);
@@ -661,13 +661,12 @@ export async function getProducts(filters: {
       productTypes.includes(pt)
     );
   }
-
   const filterOptions: FilterOptions = {
     product_types: [...new Set(filteredProductTypes)] as string[],
-    vendors: [...new Set(allProductsData?.map((p) => p.vendor).filter(Boolean))] as string[],
+    vendors: [...new Set(brandsData?.map((b) => b.name))] as string[], // Lấy từ bảng brands
     colors: [...new Set(allProductsData?.flatMap((p) => p.colors || []))] as string[],
     sizes: [...new Set(allProductsData?.flatMap((p) => p.sizes || []))] as string[],
-    smart_collections: smartCollections?.map((sc) => ({ handle: sc.handle, title: sc.title })) || [],
+    smart_collections: smartCollections?.map((sc) => ({ handle: sc.handle, title: sc.title })) as string[],
   };
 
   return { products: productsWithStock, filterOptions, total };

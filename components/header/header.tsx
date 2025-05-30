@@ -312,7 +312,7 @@ export function Header() {
               </PopoverGroup> */}
 
               {/* Logo */}
-              <a href="/" className="flex">
+              <a href="/" className="flex ml-2">
                 <span className="sr-only">DiepLeHouse</span>
                 <img
                   src={'/assets/icons/dieple-logo.svg'}
