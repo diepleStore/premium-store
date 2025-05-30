@@ -9,7 +9,7 @@ import "./globals.css";
 import { Header } from "@/components/header/header";
 import Footer from "@/components/footer/footer";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-
+import { SpeedInsights } from "@vercel/speed-insights/next"
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -42,6 +42,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={geistSans.className} suppressHydrationWarning>
       <body className="bg-background text-foreground">
+        <SpeedInsights />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -54,7 +55,7 @@ export default function RootLayout({
             <div className="flex-1 w-full flex flex-col gap-20 items-center">
 
               <div className="flex flex-col w-full">
-                  {children}
+                {children}
               </div>
             </div>
           </main>
