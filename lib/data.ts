@@ -503,12 +503,15 @@ export async function getProducts(filters: {
   sort?: 'price-asc' | 'price-desc' | 'name-asc' | 'name-desc';
   smart_collection_handle?: string;
   tag?: string;
+  tags?: string; // Thêm filter tags
   limit?: number;
   offset?: number;
+  hot?: boolean;
+  inStock?: boolean;
 }): Promise<{ products: ProductWithStock[]; filterOptions: FilterOptions; total: number }> {
   const supabase = createClient();
 
-  // Lấy smart collections theo tag (body_html)
+  // Lấy smart collections theo tag (body_html) hoặc smart_collection_handle
   let smartCollectionHandles: string[] = [];
   if (filters.tag) {
     const { data: smartCollections } = await supabase
@@ -517,16 +520,13 @@ export async function getProducts(filters: {
       .eq('body_html', filters.tag);
     smartCollectionHandles = smartCollections?.map((sc) => sc.handle) || [];
   }
+  if (filters.smart_collection_handle) {
+    smartCollectionHandles.push(filters.smart_collection_handle);
+  }
 
   // Lấy product types theo smart_collection_handle hoặc tag
   let productTypes: string[] = [];
-  if (filters.smart_collection_handle) {
-    const { data: productTypeData } = await supabase
-      .from('product_types')
-      .select('name')
-      .eq('smart_collection_handle', filters.smart_collection_handle);
-    productTypes = productTypeData?.map((pt) => pt.name) || [];
-  } else if (filters.tag && smartCollectionHandles.length > 0) {
+  if (smartCollectionHandles.length > 0) {
     const { data: productTypeData } = await supabase
       .from('product_types')
       .select('name')
@@ -534,10 +534,7 @@ export async function getProducts(filters: {
     productTypes = productTypeData?.map((pt) => pt.name) || [];
   }
 
-  // Count total products
-  let countQuery = supabase.from('products').select('*', { count: 'exact', head: true });
-
-  // Fetch products
+  // Khởi tạo queries
   let productQuery = supabase
     .from('products')
     .select(`
@@ -551,14 +548,16 @@ export async function getProducts(filters: {
       tags,
       created_at,
       updated_at,
-      published_at
+      published_at,
+      product_variants (
+        inventory_quantity,
+        reserved_quantity
+      )
     `);
+  let countQuery = supabase.from('products').select('id', { count: 'exact', head: true });
 
   // Apply filters
-  if (filters.tag && smartCollectionHandles.length > 0 && !filters.smart_collection_handle) {
-    productQuery = productQuery.in('product_type', productTypes);
-    countQuery = countQuery.in('product_type', productTypes);
-  } else if (filters.smart_collection_handle && productTypes.length > 0) {
+  if (productTypes.length > 0) {
     productQuery = productQuery.in('product_type', productTypes);
     countQuery = countQuery.in('product_type', productTypes);
   }
@@ -582,6 +581,15 @@ export async function getProducts(filters: {
     productQuery = productQuery.ilike('title', `%${filters.search}%`);
     countQuery = countQuery.ilike('title', `%${filters.search}%`);
   }
+  if (filters.hot) {
+    productQuery = productQuery.ilike('tags', '%hot%');
+    countQuery = countQuery.ilike('tags', '%hot%');
+  }
+  if (filters.tags) {
+    productQuery = productQuery.ilike('tags', `%${filters.tags}%`);
+    countQuery = countQuery.ilike('tags', `%${filters.tags}%`);
+  }
+
 
   // Apply sorting
   if (filters.sort) {
@@ -608,7 +616,8 @@ export async function getProducts(filters: {
   // Fetch variants for stock and price
   const { data: variantsData, error: variantsError } = await supabase
     .from('product_variants')
-    .select('product_id, price, inventory_quantity, reserved_quantity');
+    .select('product_id, price, inventory_quantity, reserved_quantity')
+    .in('product_id', productsData.map((p) => p.id));
 
   if (variantsError || !variantsData) {
     console.error('Error fetching variants:', variantsError?.message);
@@ -617,7 +626,7 @@ export async function getProducts(filters: {
 
   // Calculate available stock and min price
   let productsWithStock: ProductWithStock[] = productsData.map((product) => {
-    const variants = variantsData.filter((v) => v.product_id === product.id);
+    const variants = variantsData.filter((v) => v.product_id === product.id && (filters.inStock ? (v.inventory_quantity - v.reserved_quantity > 0) : true));
     const available_stock = variants.reduce(
       (sum, v) => sum + (v.inventory_quantity - v.reserved_quantity),
       0
@@ -650,23 +659,18 @@ export async function getProducts(filters: {
   }
   const { data: smartCollections } = await smartCollectionsQuery;
 
-  // Lọc product types theo smart_collection_handle hoặc tag
+  // Lọc product types
   let filteredProductTypes = allProductsData?.map((p) => p.product_type).filter(Boolean) || [];
-  if (filters.smart_collection_handle) {
-    filteredProductTypes = filteredProductTypes.filter((pt) =>
-      productTypes.includes(pt)
-    );
-  } else if (filters.tag) {
-    filteredProductTypes = filteredProductTypes.filter((pt) =>
-      productTypes.includes(pt)
-    );
+  if (smartCollectionHandles.length > 0) {
+    filteredProductTypes = filteredProductTypes.filter((pt) => productTypes.includes(pt));
   }
+
   const filterOptions: FilterOptions = {
     product_types: [...new Set(filteredProductTypes)] as string[],
-    vendors: [...new Set(brandsData?.map((b) => b.name))] as string[], // Lấy từ bảng brands
+    vendors: [...new Set(brandsData?.map((b) => b.name))] as string[],
     colors: [...new Set(allProductsData?.flatMap((p) => p.colors || []))] as string[],
     sizes: [...new Set(allProductsData?.flatMap((p) => p.sizes || []))] as string[],
-    smart_collections: smartCollections?.map((sc) => ({ handle: sc.handle, title: sc.title })) as string[],
+    smart_collections: smartCollections?.map((sc) => ({ handle: sc.handle, title: sc.title })) || [],
   };
 
   return { products: productsWithStock, filterOptions, total };
