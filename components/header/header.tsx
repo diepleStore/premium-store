@@ -52,18 +52,18 @@ export function Header() {
               <div>
                 <span className='uppercase font-["Mont"] font-[600] text-lg' >Danh mục</span>
                 <div className='flex flex-col gap-7 border-l pl-2 mt-6 mb-2 ml-3' >
-                  <span className='uppercase font-["Mont"] font-[400] text-lg' >Mỹ Phẩm</span>
-                  <span className='uppercase font-["Mont"] font-[400] text-lg' >Thời Trang</span>
-                  <span className='uppercase font-["Mont"] font-[400] text-lg' >Nhà cửa & đời sống</span>
-                  <span className='uppercase font-["Mont"] font-[400] text-lg' >Mẹ & bé</span>
+                  <a href="/products?tag=my-pham" className='uppercase font-["Mont"] font-[400] text-lg' >Mỹ Phẩm</a>
+                  <a href="/products?tag=thoi-trang" className='uppercase font-["Mont"] font-[400] text-lg' >Thời Trang</a>
+                  <a href="/products?tag=nha-cua-doi-song" className='uppercase font-["Mont"] font-[400] text-lg' >Nhà cửa & đời sống</a>
+                  <a href="/products?tag=me-be" className='uppercase font-["Mont"] font-[400] text-lg' >Mẹ & bé</a>
                 </div>
               </div>
-              <span className='uppercase font-["Mont"] font-[600] text-lg' >DIỆP LÊ CHOICES</span>
-              <span className='uppercase font-["Mont"] font-[600] text-lg' >DIỆP LÊ COLLAB</span>
-              <span className='uppercase font-["Mont"] font-[600] text-lg' >DIỆP LÊ PASS</span>
-              <span className='uppercase font-["Mont"] font-[600] text-lg' >ĐẠI SỨ - ĐỘC QUYỀN</span>
-              <span className='uppercase font-["Mont"] font-[600] text-lg' >TESTING</span>
-              <span className='uppercase font-["Mont"] font-[600] text-lg' >BLOG</span>
+              <a href="/products?tag=diep-le-choices&tags=DL-choices" className='uppercase font-["Mont"] font-[600] text-lg' >DIỆP LÊ CHOICES</a>
+              <a href="/products?tag=diep-le-collab&tags=DL-collab" className='uppercase font-["Mont"] font-[600] text-lg' >DIỆP LÊ COLLAB</a>
+              <a href="/products?tag=diep-le-pass&tags=DL-pass" className='uppercase font-["Mont"] font-[600] text-lg' >DIỆP LÊ PASS</a>
+              <a href="/products?tag=dai-su-doc-quyen&tags=dai-su-doc-quyen" className='uppercase font-["Mont"] font-[600] text-lg' >ĐẠI SỨ - ĐỘC QUYỀN</a>
+              {/* <span className='uppercase font-["Mont"] font-[600] text-lg' >TESTING</span>
+              <span className='uppercase font-["Mont"] font-[600] text-lg' >BLOG</span> */}
 
             </div>
 

@@ -26,16 +26,12 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stockWarning, setStockWarning] = useState<string | null>(null);
-
-  console.log('ProductDetailPage: sessionId=', sessionId);
-  console.log('Selected variant_id:', variant?.id);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null); // State cho ảnh được chọn
 
   // Fetch product and initial variant
   useEffect(() => {
     async function fetchProduct() {
       setLoading(true);
-
-  
 
       const productData = await getProductById(id as string);
       if (!productData) {
@@ -44,8 +40,8 @@ export default function ProductDetailPage() {
         setLoading(false);
         return;
       }
-      console.log('ProductDetailPage: Fetched product', { id, title: productData.title, colors: productData.colors, sizes: productData.sizes });
       setProduct(productData);
+      setSelectedImage(productData.images[0] || null); // Chọn ảnh đầu tiên mặc định
 
       // Set default variant (first color and size)
       const defaultColor = productData.colors[0] || '';
@@ -105,7 +101,7 @@ export default function ProductDetailPage() {
           console.log('ProductDetailPage: Variant stock updated', { variantId: variant.id, payload });
           setVariant((prev) => (prev ? { ...prev, ...payload.new } : prev));
           if (payload.new.inventory_quantity - payload.new.reserved_quantity < quantity) {
-            setStockWarning('Selected quantity exceeds available stock.');
+            setStockWarning('Số lượng sản phẩm vượt quá số lượng có sẵn trong kho!');
           }
         }
       )
@@ -125,7 +121,7 @@ export default function ProductDetailPage() {
     }
     if (quantity > (variant.inventory_quantity - variant.reserved_quantity)) {
       console.error('ProductDetailPage: Insufficient stock', { variantId: variant.id, quantity, available: variant.inventory_quantity - variant.reserved_quantity });
-      setStockWarning('Selected quantity exceeds available stock.');
+      setStockWarning('Số lượng sản phẩm vượt quá số lượng có sẵn trong kho!');
       return;
     }
 
@@ -161,23 +157,11 @@ export default function ProductDetailPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-8 w-48" />
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Skeleton className="h-64 w-full" />
-              <div>
-                <Skeleton className="h-6 w-32 mb-4" />
-                <Skeleton className="h-6 w-24 mb-4" />
-                <Skeleton className="h-10 w-48 mb-4" />
-                <Skeleton className="h-10 w-48" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="container h-full mx-auto px-4 py-10">
+        <div className="flex items-center justify-center h-full">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
+            <span className="ml-4 text-gray-700 text-2xl font-['Mont']">Đang tải dữ liệu sản phẩm...</span>
+        </div>
       </div>
     );
   }
@@ -190,117 +174,121 @@ export default function ProductDetailPage() {
             <CardTitle>Error</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-red-500">{error || 'Product not found'}</p>
+            <p className="text-red-500">{error || 'Sản phẩm không tồn tại'}</p>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  const htmlString = product.body_html || '<p>No description available</p>';
+  const htmlString = product.body_html || '<p>Sản phẩm không tồn tại</p>';
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>{product.title}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Product Image */}
-            <div>
-              {product?.images?.length > 0 ? product.images.map((imgLink, imgLinkKey) =>
-              (
+    <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Product Images */}
+        <div>
+          {/* Main Image */}
+          {selectedImage ? (
+            <img
+              src={selectedImage}
+              alt={product.title}
+              className="w-full object-cover rounded-md mb-4 aspect-[576/786] bg-[#D9D9D9]"
+            />
+          ) : (
+            <div className="w-full h-64 md:h-96 bg-[#D9D9D9] rounded-md flex items-center justify-center mb-4">
+              No Image
+            </div>
+          )}
+          {/* Thumbnail Images */}
+          {product.images?.length > 0 && (
+            <div className="flex !overflow-x-scroll gap-[2%] !scroll-auto scroll-m-2">
+              {product.images.map((imgLink, index) => (
                 <img
-                  key={imgLinkKey}
+                  key={index}
                   src={imgLink}
-                  alt={product.title}
-                  className="w-full h-64 object-cover rounded-md mb-2"
+                  alt={`${product.title} thumbnail ${index}`}
+                  className={`w-[23.5%] h-auto object-contain bg-[#f2f1f1] cursor-pointer aspect-square border-t-2 border-transparent ${selectedImage === imgLink ? '!border-black' : ''}`}
+                  onClick={() => setSelectedImage(imgLink)}
                 />
-              )) : (
-                <div className="w-full h-64 bg-gray-200 rounded-md flex items-center justify-center">
-                  No Image
-                </div>
-              )}
+              ))}
             </div>
-            {/* Product Details */}
-            <div>
+          )}
+        </div>
+        {/* Product Details */}
+        <div className="font-['Mont']">
+          <p className="text-2xl font-bold mb-2 uppercase font-['Mont']">{product.vendor || 'Unknown'}</p>
+          <p className="text-lg font-semibold mb-4 text-black font-['Mont']">
+            Brand: {product.title || 'Unknown'}
+          </p>
+          <div className='border-b-1' />
+          <p className="text-lg font-['Mont-semibold'] mb-4 mt-4">
+            {((variant?.price || 0) / 1000).toFixed(3)}đ
+          </p>
+          {/* {variant && (
+            <p className="text-base text-gray-800 mb-4">
+              Kho: {variant.inventory_quantity - variant.reserved_quantity}
+            </p>
+          )} */}
+          {stockWarning && <p className="text-red-500 mb-4">{stockWarning}</p>}
 
-              <h2 className="text-2xl font-bold mb-4">{product.title}</h2>
-
-              =              <p className="text-lg font-semibold mb-4">
-                {((variant?.price || 0) / 1000).toFixed(3)} VND
-              </p>
-              {variant && (
-                <p className="text-sm text-gray-500 mb-4">
-                  Available Stock: {variant.inventory_quantity - variant.reserved_quantity}
-                </p>
-              )}
-              {stockWarning && <p className="text-red-500 mb-4">{stockWarning}</p>}
-
-              {/* Variant Selection */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Color</label>
-                <Select value={selectedColor} onValueChange={setSelectedColor}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select color" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {product.colors.map((color) => (
-                      <SelectItem key={color} value={color}>
-                        {color}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Size</label>
-                <Select value={selectedSize} onValueChange={setSelectedSize}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select size" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {product.sizes.map((size) => (
-                      <SelectItem key={size} value={size}>
-                        {size}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-
-              {/* Quantity Input */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Quantity</label>
-                <Input
-                  type="number"
-                  min="1"
-                  max={variant ? variant.inventory_quantity - variant.reserved_quantity : 1}
-                  value={quantity}
-                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-24"
-                />
-              </div>
-
-              <span>noi dung</span>
-              <div
-                dangerouslySetInnerHTML={{ __html: htmlString }}
-              />
-
-              {/* Add to Cart Button */}
-              <Button onClick={handleAddToCart} disabled={!variant || quantity < 1}>
-                Add to Cart
-              </Button>
-
-            </div>
+          {/* Variant Selection */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">Color</label>
+            <Select value={selectedColor} onValueChange={setSelectedColor}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select color" />
+              </SelectTrigger>
+              <SelectContent>
+                {product.colors.map((color) => (
+                  <SelectItem key={color} value={color}>
+                    {color}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </CardContent>
-      </Card>
 
-      {product?.title?.length > 0 && <ShopeeProductSearch name={product.title} />}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">Size</label>
+            <Select value={selectedSize} onValueChange={setSelectedSize}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select size" />
+              </SelectTrigger>
+              <SelectContent>
+                {product.sizes.map((size) => (
+                  <SelectItem key={size} value={size}>
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Quantity Input */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">Quantity</label>
+            <Input
+              type="number"
+              min="1"
+              max={variant ? variant.inventory_quantity - variant.reserved_quantity : 1}
+              value={quantity}
+              onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+              className="w-24"
+            />
+          </div>
+
+          <span className='text-lg font-["Mont-semibold"] mb-2'>Chi tiết sản phẩm</span>
+          <div dangerouslySetInnerHTML={{ __html: htmlString }} />
+
+          {/* Add to Cart Button */}
+          <Button onClick={handleAddToCart} disabled={!variant || quantity < 1} className='uppercase bg-black text-white font-semibold hover:bg-gray-800 transition-colors duration-200 mt-4 px-10 !rounded-none'>
+            Thêm giỏ hàng
+          </Button>
+        </div>
+      </div>
+
+      {/* {product?.title?.length > 0 && <ShopeeProductSearch name={product.title} />} */}
     </div>
   );
 }

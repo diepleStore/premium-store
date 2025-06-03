@@ -21,6 +21,12 @@ const debounce = (func: (...args: any[]) => void, wait: number) => {
 export default function ProductsPage() {
   const searchParams = useSearchParams();
   const tag = searchParams.get('tag') || 'my-pham'; // Lấy tag từ URL, mặc định là 'my-pham'
+  const tags = searchParams.get('tags') || ''; // Lấy tags từ query string
+  let isSepecialTag = false;
+
+  if (tag && ['diep-le-pass', 'diep-le-collab', 'diep-le-choices', 'dai-su-doc-quyen'].includes(tag)) {
+    isSepecialTag = true;
+  }
   const [products, setProducts] = useState<ProductWithStock[]>([]);
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     product_types: [],
@@ -42,6 +48,7 @@ export default function ProductsPage() {
     selectedProductTypes: [] as string[],
     selectedSmartCollection: '' as string,
     search: '',
+    tags: tags, // Thêm tags vào filters
     limit: 20,
     offset: 0,
   });
@@ -61,20 +68,15 @@ export default function ProductsPage() {
             filters.sort === 'newest' ? 'name-desc' : undefined,
         smart_collection_handle: filters.selectedSmartCollection || undefined,
         tag: tag || undefined, // Truyền tag vào getProducts
+        tags: filters.tags || undefined, // Truyền tags
         limit: filters.limit,
         offset: filters.offset,
+        hot: filters.hot || undefined, // Truyền filter hot
+        inStock: filters.inStock || false, // Truyền filter inStock
       });
 
-      let filteredProducts = products;
-      if (filters.hot) {
-        filteredProducts = filteredProducts.filter((p) => p.tags?.toLowerCase().includes('hot'));
-      }
-      if (filters.inStock) {
-        filteredProducts = filteredProducts.filter((p) => p.available_stock > 0);
-      }
-
-      setProducts((prev) => (filters.offset === 0 ? filteredProducts : [...prev, ...filteredProducts]));
-      setFilterOptions(filterOptions);
+      setProducts((prev) => (filters.offset === 0 ? products : [...prev, ...products]));
+      filterOptions && setFilterOptions(filterOptions);
       setTotal(total);
     } catch (err) {
       setError('Không thể tải sản phẩm.');
@@ -125,11 +127,26 @@ export default function ProductsPage() {
 
   if (error) return <p className="text-red-500 text-center p-4">{error}</p>;
 
+  const convertTagToName = (tag: string) => {
+    switch (tag) {
+      case 'diep-le-pass':
+        return 'Diep Le Pass';
+      case 'diep-le-collab':
+        return 'Diep Le Collab';
+      case 'diep-le-choices':
+        return 'Diep Le Choices';
+      case 'dai-su-doc-quyen':
+        return 'Đại Sứ Độc Quyền';
+      default:
+        return 'Xem tất cả';
+    }
+  };
+
   return (
     <Suspense fallback={<div>Loading...</div>}>
       <div className="p-4">
         {/* Div cuộn ngang cho Smart Collections */}
-        <div className='min-h-[120px] md:ml-[25%] xl:ml-[20%] flex flex-col item-start justify-start '>
+        <div style={isSepecialTag ? { minHeight: 60 } : {}}  className='min-h-[120px] md:ml-[25%] xl:ml-[20%] flex flex-col item-start justify-start '>
           <div className='w-full relative flex justify-between items-center'>
             <div className="overflow-x-auto flex gap-2 sm:gap-12 no-scrollbar mb-2 relative pr-[60px] sm:pr-[100px] mr-[50px] sm:mr-[70px]">
               <button
@@ -139,9 +156,9 @@ export default function ProductsPage() {
                   }`}
                 onClick={() => handleFilterChange('selectedSmartCollection', '')}
               >
-                Xem tất cả
+                {isSepecialTag ? convertTagToName(tag) : 'Xem tất cả'}
               </button>
-              {filterOptions.smart_collections.map((collection) => (
+              {!isSepecialTag && filterOptions.smart_collections.map((collection) => (
                 <button
                   key={collection.handle}
                   className={`hover:cursor-pointer pl-0 sm:pl-4 px-4 py-2 text-xl whitespace-nowrap transition font-['Mont'] !outline-0 uppercase ${filters.selectedSmartCollection === collection.handle
@@ -167,7 +184,7 @@ export default function ProductsPage() {
           {filters.selectedSmartCollection && (
             <div className='w-full relative flex justify-between items-center'>
               {
-                loading && (
+                loading && !filterOptions.product_types && (
                   <div className="absolute h-[50px] inset-0 flex items-center justify-center bg-[#D9D9D9] z-10 pr-[60px] sm:pr-[100px] mr-[50px] sm:mr-[70px]">
                     <Skeleton translate='yes' className="h-[50px] w-32" />
                   </div>
@@ -206,7 +223,7 @@ export default function ProductsPage() {
         <div className="flex flex-col md:flex-row gap-0">
           {/* Bộ lọc - Desktop */}
           <div className="hidden md:block w-full md:w-1/4 xl:w-1/5">
-            <div className="bg-white p-4">
+            <div className="bg-white p-4 pt-0">
               <div className='bg-[#F0EEE1] flex mb-4 justify-between items-center px-3 py-1 w-[80%] max-w-[150px]'>
                 <span className="text-lg font-['Mont'] self-start text-start flex uppercase">Lọc Theo</span>
                 <img
@@ -491,7 +508,7 @@ export default function ProductsPage() {
                 ))}
               </div>
             ) : !loading && products.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full p-4">
+              <div className="flex flex-col items-center justify-center h-full p-4 font-['Mont']">
                 <p className="text-gray-500">Không có sản phẩm nào phù hợp.</p>
               </div>
             ) : (
@@ -514,8 +531,8 @@ export default function ProductsPage() {
                           </div>
                         )}
                       </div>
-                      <h3 className="text-lg text-center font-medium mt-2 text-black/80 line-clamp-2 font-['Mont-semibold'] h-[56px]">{product.title}</h3>
-                      <p className="text-gray-600 text-center text-lg font-['Mont']">
+                      <h3 className="text-base sm:text-lg text-center font-medium mt-2 text-black/80 line-clamp-2 font-['Mont-semibold'] h-[50px] sm:h-[56px]">{product.title}</h3>
+                      <p className="text-gray-600 text-center text-base sm:text-lg font-['Mont']">
                         {product.min_price.toLocaleString('vi-VN')}₫
                       </p>
                     </div>
