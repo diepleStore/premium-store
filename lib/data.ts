@@ -519,18 +519,26 @@ export async function getProducts(filters: {
       .select('handle')
       .eq('body_html', filters.tag);
     smartCollectionHandles = smartCollections?.map((sc) => sc.handle) || [];
+
+    if (smartCollectionHandles.length === 0) {
+      return { products: [], filterOptions: { product_types: [], vendors: [], colors: [], sizes: [], smart_collections: [] }, total: 0 };
+    }
   }
-  if (filters.smart_collection_handle) {
-    smartCollectionHandles.push(filters.smart_collection_handle);
-  }
+
 
   // Lấy product types theo smart_collection_handle hoặc tag
   let productTypes: string[] = [];
-  if (smartCollectionHandles.length > 0) {
+  if (smartCollectionHandles.length > 0 && filters.smart_collection_handle?.length === 0) {
     const { data: productTypeData } = await supabase
       .from('product_types')
       .select('name')
       .in('smart_collection_handle', smartCollectionHandles);
+    productTypes = productTypeData?.map((pt) => pt.name) || [];
+  } else if (filters.smart_collection_handle?.length > 0) {
+    const { data: productTypeData } = await supabase
+      .from('product_types')
+      .select('name')
+      .eq('smart_collection_handle', filters.smart_collection_handle);
     productTypes = productTypeData?.map((pt) => pt.name) || [];
   }
 

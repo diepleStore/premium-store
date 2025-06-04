@@ -54,6 +54,8 @@ export default function ProductsPage() {
   });
   const [isOpenFilter, setOpenFilter] = useState(false)
 
+  console.log('filters', filters);
+
   const fetchProducts = async () => {
     setLoading(true);
     try {
