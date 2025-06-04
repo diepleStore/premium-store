@@ -282,7 +282,7 @@ export default function ProductDetailPage() {
           <div dangerouslySetInnerHTML={{ __html: htmlString }} />
 
           {/* Add to Cart Button */}
-          <Button onClick={handleAddToCart} disabled={!variant || quantity < 1} className='uppercase bg-black text-white font-semibold hover:bg-gray-800 transition-colors duration-200 mt-4 px-10 !rounded-none'>
+          <Button onClick={handleAddToCart} disabled={!variant || quantity < 1} className='uppercase cursor-pointer bg-black text-white font-semibold hover:bg-gray-500 transition-colors duration-200 mt-4 px-10 !rounded-none'>
             Thêm giỏ hàng
           </Button>
         </div>
